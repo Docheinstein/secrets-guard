@@ -16,7 +16,7 @@ class Args:
         self.kwargs = {}
 
     def __str__(self):
-        s = "COMMAND: " + (self.command.value if self.command is not None else "<none>") + "\n" + \
+        s = "COMMAND: " + (self.command if self.command is not None else "<none>") + "\n" + \
             "Args: " + list_to_str(self.args) + "\n" + \
             "Kwargs: " + dict_of_lists_to_str(self.kwargs)
 

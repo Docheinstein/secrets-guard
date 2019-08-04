@@ -1,0 +1,3 @@
+Implement a customization mechanism for fields, in particular
+1) Private fields: ask the user using getpass instead of input
+2) Order fields: order the data of 'show' and 'grep' using the value of this field

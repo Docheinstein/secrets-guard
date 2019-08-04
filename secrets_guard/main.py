@@ -1,13 +1,13 @@
 import logging
 import os
 import sys
+import traceback
 
-from secrets_guard.apis import Options, Command
 from secrets_guard.args import Args
+from secrets_guard.cli import Options, Commands, SecretAttributes
 from secrets_guard.conf import Conf
-from secrets_guard.secret import secret_add, secret_remove, secret_grep, secret_modify
-from secrets_guard.store import store_create, store_show, store_open, store_destroy
-from secrets_guard.utils import keyval_list_to_dict, abort, terminate, is_empty_string
+from secrets_guard.store import Store, StoreField
+from secrets_guard.utils import keyval_list_to_dict, abort, terminate, is_empty_string, prompt
 
 HELP = """NAME 
     secrets - encrypt and decrypt private information (such as passwords)
@@ -85,7 +85,7 @@ def init_logging(parsed_args):
                         format="[%(levelname)s] %(asctime)s %(message)s",
                         datefmt='%d/%m/%y %H:%M:%S')
 
-    if not parsed_args.has_kwarg(Options.VERBOSE.value):
+    if not parsed_args.has_kwarg(Options.VERBOSE):
         logging.disable()
 
 # =====================
@@ -110,8 +110,8 @@ def parse_arguments(arguments):
 
     command_request = arguments[0]
 
-    for command in Command:
-        if command.value == command_request:
+    for command in Commands.__dict__.values():
+        if command == command_request:
             parsed_args.command = command
 
     if parsed_args.command is None:
@@ -138,28 +138,30 @@ def parse_arguments(arguments):
     return parsed_args
 
 
-def obtain_positional_argument(parsed_args, index, prompt_text):
+def obtain_positional_argument(parsed_args, index, prompt_text, secure=False):
     """
     Gets the positional argument at the given index from parsed_args
     or asks the user to input it if not present between parsed_args.
     :param parsed_args: the parsed arguments
     :param index: the index of the argument
     :param prompt_text: the text eventually prompted to the user
+    :param secure: whether the input should be hidden
     :return: the obtained value
     """
     if len(parsed_args.args) > index:
         return parsed_args.args[index]
 
-    return input(prompt_text)
+    return prompt(prompt_text, secure=secure)
 
 
-def obtain_argument_params(parsed_args, argument, prompt_text):
+def obtain_argument_params(parsed_args, argument, prompt_text, secure=False):
     """
     Gets the argument's params from parsed_args or asks the user to input it
     if not present between parsed_args.
     :param parsed_args: the parsed arguments
     :param argument: the name of the argument for which get the params
     :param prompt_text: the text eventually prompted to the user
+    :param secure: whether the input should be hidden
     :return: the obtained value
     """
     params = parsed_args.kwarg_params(argument)
@@ -167,16 +169,17 @@ def obtain_argument_params(parsed_args, argument, prompt_text):
     if params:
         return params
 
-    return input(prompt_text)
+    return prompt(prompt_text, secure=secure)
 
 
-def obtain_argument_param(parsed_args, argument, prompt_text):
+def obtain_argument_param(parsed_args, argument, prompt_text, secure=False):
     """
     Gets the first argument's param from parsed_args or asks the user to input it
     if not present between parsed_args.
     :param parsed_args: the parsed arguments
     :param argument: the name of the argument for which get the params
     :param prompt_text: the text eventually prompted to the user
+    :param secure: whether the input should be hidden
     :return: the obtained value
     """
     params = parsed_args.kwarg_param(argument)
@@ -184,7 +187,7 @@ def obtain_argument_param(parsed_args, argument, prompt_text):
     if params:
         return params
 
-    return input(prompt_text)
+    return prompt(prompt_text, secure=secure)
 
 
 def obtain_store_name(parsed_args):
@@ -204,7 +207,8 @@ def obtain_store_key(parsed_args):
     :param parsed_args: the parsed arguments
     :return: the store key
     """
-    return obtain_argument_param(parsed_args, Options.STORE_KEY.value, "Store key: ")
+    return obtain_argument_param(parsed_args, Options.STORE_KEY,
+                                 "Store key: ", secure=True)
 
 
 def obtain_store_path(parsed_args, ensure_existence=True):
@@ -215,7 +219,7 @@ def obtain_store_path(parsed_args, ensure_existence=True):
     :param ensure_existence: whether abort if the path does not exist
     :return: the store path
     """
-    path = parsed_args.kwarg_param(Options.STORE_PATH.value, Conf.DEFAULT_PATH)
+    path = parsed_args.kwarg_param(Options.STORE_PATH, Conf.DEFAULT_PATH)
     if ensure_existence and not os.path.exists(path):
         abort("Error: path does not exist (%s)" % path)
     return path
@@ -246,7 +250,8 @@ def attempt_execute_command(command, error_message="Unexpected error occurred"):
     try:
         command_ok = command()
     except Exception as e:
-        logging.debug("Caught exception %s", e)
+        logging.warning("Caught exception %s", e)
+        logging.warning(traceback.format_exc())
 
     if not command_ok:
         abort(error_message)
@@ -261,21 +266,38 @@ def execute_create_store(parsed_args):
         obtain_common_store_arguments(parsed_args, ensure_valid_path=False)
 
     # Store fields
-    store_fields = parsed_args.kwarg_params(Options.STORE_FIELDS.value)
+    raw_store_fields = parsed_args.kwarg_params(Options.STORE_FIELDS)
 
-    if store_fields is None:
-        store_fields = []
+    if raw_store_fields is None:
+        raw_store_fields = []
         f = None
         i = 1
-        print("\nInsert store fields (leave empty for end the fields insertion).")
+        print("\nInsert store fields with format <name>[+<properties>].\n(Leave empty for end the fields insertion).")
         while not is_empty_string(f):
-            f = input(str(i) + "° field name: ")
+            f = input(str(i) + "° field: ")
             if not is_empty_string(f):
-                store_fields.append(f)
+                raw_store_fields.append(f)
             i += 1
 
+    store_fields = []
+    for raw_field in raw_store_fields:
+        field_parts = raw_field.split("+")
+        fieldname = field_parts[0]
+        fieldattributes = field_parts[1] if len(field_parts) > 1 else []
+
+        store_fields.append(StoreField(
+            fieldname,
+            hidden=SecretAttributes.HIDDEN in fieldattributes,
+            mandatory=SecretAttributes.MANDATORY in fieldattributes)
+        )
+
+    def do_create_store():
+        store = Store(store_path, store_name, store_key)
+        store.add_fields(*store_fields)
+        return store.save()
+
     attempt_execute_command(
-        lambda: store_create(store_path, store_name, store_key, *store_fields),
+        do_create_store,
         error_message="Error: cannot create store"
     )
 
@@ -284,8 +306,12 @@ def execute_destroy_store(parsed_args):
     store_path = obtain_store_path(parsed_args)
     store_name = obtain_store_name(parsed_args)
 
+    def do_destroy_store():
+        store = Store(store_path, store_name)
+        return store.destroy()
+
     attempt_execute_command(
-        lambda: store_destroy(store_path, store_name),
+        do_destroy_store,
         error_message="Error: cannot destroy store"
     )
 
@@ -303,8 +329,13 @@ def execute_list_stores(parsed_args):
 def execute_show_store(parsed_args):
     store_path, store_name, store_key = obtain_common_store_arguments(parsed_args)
 
+    def do_show_store():
+        store = Store(store_path, store_name, store_key)
+        store.open()
+        return store.show()
+
     attempt_execute_command(
-        lambda: store_show(store_path, store_name, store_key),
+        do_show_store,
         error_message="Error: cannot show store"
     )
 
@@ -314,19 +345,34 @@ def execute_add_secret(parsed_args):
 
     # Secret data
 
-    secret_data = parsed_args.kwarg_params(Options.SECRET_DATA.value)
+    secret_data = parsed_args.kwarg_params(Options.SECRET_DATA)
 
-    if secret_data is None:
-        secret = {}
-        store = store_open(store_path, store_name, store_key)
+    def do_add_secret():
+        store = Store(store_path, store_name, store_key)
+        store.open()
 
-        for f in store["fields"]:
-            secret[f] = input(f + ": ")
-    else:
-        secret = keyval_list_to_dict(secret_data)
+        if secret_data is None:
+            secret = {}
+        else:
+            secret = keyval_list_to_dict(secret_data)
+
+        for f in store.fields:
+            if f.mandatory:
+                has_mandatory = False
+                for secfield in secret:
+                    if f.name.lower() == secfield.lower():
+                        has_mandatory = True
+                        break
+                if not has_mandatory:
+                    secret[f.name] = prompt(f.name + ": ", secure=f.hidden)
+
+        if not store.add_secrets(secret):
+            return False
+
+        return store.save()
 
     attempt_execute_command(
-        lambda: secret_add(store_path, store_name, store_key, secret),
+        do_add_secret,
         error_message="Error: cannot add secret"
     )
 
@@ -335,8 +381,13 @@ def execute_grep_secret(parsed_args):
     store_path, store_name, store_key = obtain_common_store_arguments(parsed_args)
     grep_pattern = obtain_positional_argument(parsed_args, 1, "Search pattern: ")
 
+    def do_grep_secret():
+        store = Store(store_path, store_name, store_key)
+        store.open()
+        return store.grep(grep_pattern)
+
     attempt_execute_command(
-        lambda: secret_grep(store_path, store_name, store_key, grep_pattern),
+        do_grep_secret,
         error_message="Error: cannot search for secrets"
     )
 
@@ -345,8 +396,13 @@ def execute_remove_secret(parsed_args):
     store_path, store_name, store_key = obtain_common_store_arguments(parsed_args)
     secret_id = int(obtain_positional_argument(parsed_args, 1, "ID of the secret to remove: "))
 
+    def do_remove_secret():
+        store = Store(store_path, store_name, store_key)
+        store.open()
+        return store.remove_secrets(secret_id)
+
     attempt_execute_command(
-        lambda: secret_remove(store_path, store_name, store_key, secret_id),
+        do_remove_secret,
         error_message="Error: cannot remove secret with ID %d (index out of bound?)" % secret_id
     )
 
@@ -354,36 +410,45 @@ def execute_remove_secret(parsed_args):
 def execute_modify_secret(parsed_args):
     store_path, store_name, store_key = obtain_common_store_arguments(parsed_args)
     secret_id = int(obtain_positional_argument(parsed_args, 1, "ID of the secret to modify: "))
-    secret_data = parsed_args.kwarg_params(Options.SECRET_DATA.value)
+    secret_data = parsed_args.kwarg_params(Options.SECRET_DATA)
 
-    # Secret data
-    if secret_data is None:
-        secret_mod = {}
-        store = store_open(store_path, store_name, store_key)
+    def do_modify_secret():
+        store = Store(store_path, store_name, store_key)
+        store.open()
 
-        if secret_id >= len(store["data"]):
-            abort("Error: invalid secret ID; index out of bound")
+        # Secret data
+        if secret_data is None:
+            secret_mod = {}
 
-        secret = store["data"][secret_id]
+            if secret_id >= len(store.secrets):
+                abort("Error: invalid secret ID; index out of bound")
 
-        print("Which field to modify?")
-        choice = len(store["fields"])
+            secret = store.secrets[secret_id]
 
-        while choice >= len(store["fields"]):
-            for i, f in enumerate(store["fields"]):
-                s = str(i) + ") " + f
-                if f in secret:
-                    s = str(s.ljust(14)) + "(" + secret[f] + ")"
-                print(s)
-            choice = int(input(": "))
+            print("Which field to modify?")
+            choice = len(store.fields)
 
-        newval = input("New value of '" + store["fields"][choice] + "': ")
-        secret_mod[store["fields"][choice]] = newval
-    else:
-        secret_mod = keyval_list_to_dict(secret_data)
+            while choice >= len(store.fields):
+                for i, f in enumerate(store.fields):
+                    s = str(i) + ") " + f.name
+                    if f in secret:
+                        s = str(s.ljust(14)) + "(" + secret[f].name + ")"
+                    print(s)
+                choice = int(input(": "))
+
+            changed_field = store.fields[choice]
+            newval = prompt("New value of '" + changed_field.name + "': ", secure=changed_field.hidden)
+            secret_mod[changed_field.name] = newval
+        else:
+            secret_mod = keyval_list_to_dict(secret_data)
+
+        if not store.modify_secret(secret_id, secret_mod):
+            return False
+
+        store.save()
 
     attempt_execute_command(
-        lambda: secret_modify(store_path, store_name, store_key, secret_id, secret_mod),
+        do_modify_secret,
         error_message="Error: cannot remove secret with ID %d (index out of bound?)" % secret_id
     )
 
@@ -393,20 +458,20 @@ def execute_command(parsed_args):
         abort("Error: invalid arguments (command not specified)")
 
     dispatcher = {
-        Command.HELP: execute_help,
-        Command.CREATE_STORE: execute_create_store,
-        Command.DESTROY_STORE: execute_destroy_store,
-        Command.LIST_STORES: execute_list_stores,
-        Command.SHOW_STORE: execute_show_store,
-        Command.ADD_SECRET: execute_add_secret,
-        Command.GREP_SECRET: execute_grep_secret,
-        Command.REMOVE_SECRET: execute_remove_secret,
-        Command.MODIFY_SECRET: execute_modify_secret
+        Commands.HELP: execute_help,
+        Commands.CREATE_STORE: execute_create_store,
+        Commands.DESTROY_STORE: execute_destroy_store,
+        Commands.LIST_STORES: execute_list_stores,
+        Commands.SHOW_STORE: execute_show_store,
+        Commands.ADD_SECRET: execute_add_secret,
+        Commands.GREP_SECRET: execute_grep_secret,
+        Commands.REMOVE_SECRET: execute_remove_secret,
+        Commands.MODIFY_SECRET: execute_modify_secret
     }
 
     if parsed_args.command not in dispatcher:
-        abort("Error: unknown command request '%s'" % parsed_args.command.value)
-    logging.debug("Executing command '" + parsed_args.command.value + "'")
+        abort("Error: unknown command request '%s'" % parsed_args.command)
+    logging.debug("Executing command '" + parsed_args.command + "'")
 
     try:
         dispatcher[parsed_args.command](parsed_args)

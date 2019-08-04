@@ -1,7 +1,4 @@
-from enum import Enum
-
-
-class Command(Enum):
+class Commands:
     """
     Available commands.
     """
@@ -17,7 +14,7 @@ class Command(Enum):
     MODIFY_SECRET = "modify"
 
 
-class Options(Enum):
+class Options:
     """
     Available options.
     """
@@ -27,3 +24,8 @@ class Options(Enum):
     STORE_PATH = "path"
     SECRET_DATA = "data"
     VERBOSE = "verbose"
+
+
+class SecretAttributes:
+    HIDDEN = "h"
+    MANDATORY = "m"

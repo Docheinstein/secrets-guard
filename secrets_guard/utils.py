@@ -2,6 +2,7 @@ import logging
 import random
 import string
 import sys
+from getpass import getpass
 from sys import exit
 
 
@@ -176,3 +177,12 @@ def tabulate(headers, data):
 
     return out
 
+
+def prompt(prompt_text, secure=False):
+    """
+    Asks for input, eventually hiding what's being written.
+    :param prompt_text: the text to show
+    :param secure: whether the input should be secret
+    :return: the text inserted by the user
+    """
+    return getpass(prompt_text) if secure else input(prompt_text)
