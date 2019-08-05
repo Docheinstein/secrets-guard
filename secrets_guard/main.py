@@ -63,6 +63,10 @@ COMMANDS
         
         e.g. secrets key newkey --key currentkey
         
+    clear [<STORE_NAME>] [--path <PATH>] [--key <STORE_KEY>]
+        Clears the content (all the secrets) of a store.
+        The model is left unchanged.
+        
     add [<STORE_NAME>] [--data DATA] [--path <PATH>] [--key <STORE_KEY>]
         Inserts a new secret into a store.
         The DATA must be expressed as a key=value list where the key should

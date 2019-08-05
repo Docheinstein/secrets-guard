@@ -79,13 +79,22 @@ The entire content of a store can be seen using ``show``.
     secrets show password --key mykey
 
 key
-^^^^
+^^^
 
 Changes the key of the store.
 
 ::
 
-    secrets key newkey --key oldkey
+    secrets key password newkey --key oldkey
+
+clear
+^^^^^
+
+Removes all the secrets from a store.
+
+::
+
+    secrets clear password --key mykey
 
 Secret commands
 ~~~~~~~~~~~~~~~
@@ -139,7 +148,7 @@ For more details about the commands, use ``help``:
 
 ::
 
-    NAME 
+    NAME
         secrets - encrypt and decrypt private information (such as passwords)
 
     SYNOPSIS
@@ -182,7 +191,7 @@ For more details about the commands, use ``help``:
 
             e.g. secrets list
 
-        show [<STORE_NAME>] [--path <PATH>] [--key <STORE_KEY>]
+        show [<STORE_NAME>] [--path <PATH>] [--key <STORE_KEY>] [--no-table]
             Decrypts and shows the content of an entire store.
 
             e.g. secrets show password --key mykey
@@ -192,6 +201,10 @@ For more details about the commands, use ``help``:
 
             e.g. secrets key newkey --key currentkey
 
+        clear [<STORE_NAME>] [--path <PATH>] [--key <STORE_KEY>]
+            Clears the content (all the secrets) of a store.
+            The model is left unchanged.
+
         add [<STORE_NAME>] [--data DATA] [--path <PATH>] [--key <STORE_KEY>]
             Inserts a new secret into a store.
             The DATA must be expressed as a key=value list where the key should
@@ -199,7 +212,7 @@ For more details about the commands, use ``help``:
 
             e.g. secrets add password --data Site="Megavideo" Account="me@gmail.com" Password="MyPassword" --key mykey
 
-        grep [<STORE_NAME>] [<SEARCH_PATTERN>] [--path <PATH>] [--key <STORE_KEY>] [--no-color]
+        grep [<STORE_NAME>] [<SEARCH_PATTERN>] [--path <PATH>] [--key <STORE_KEY>] [--no-color] [--no-table]
             Performs a regular expression search between the data of the store.
             The SEARCH_PATTERN can be any valid regular expression.
             The matches will be highlighted unless --no-color is specified.
