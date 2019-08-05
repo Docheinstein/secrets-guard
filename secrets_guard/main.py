@@ -308,7 +308,7 @@ def execute_help(_):
 
 
 def execute_create_store(parsed_args):
-    store_path, store_name, store_key = \
+    store_path, store_name, store_key, use_keyring = \
         obtain_common_store_arguments(parsed_args, ensure_valid_path=False)
 
     # Store fields
@@ -359,6 +359,8 @@ def execute_destroy_store(parsed_args):
 
         # Remind to delete the keyring
         keyring_del_key(store_name)
+
+        return True
 
     attempt_execute_command(
         do_destroy_store,
@@ -530,7 +532,7 @@ def execute_modify_secret(parsed_args):
         if not store.modify_secret(secret_id, secret_mod):
             return False
 
-        store.save()
+        return store.save()
 
     attempt_execute_command(
         do_modify_secret,

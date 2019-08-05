@@ -288,7 +288,8 @@ class Store:
                 logging.warning("Exception occurred, cannot create directory")
                 return False
 
-        logging.debug("Actually flushing store %s content: %s", self._fullpath, self.secrets)
+        logging.debug("Actually flushing store %s, \nModel: %s\nSecrets: %s",
+                      self._fullpath, self.fields, self.secrets)
 
         write_ok = aes_encrypt_file(self._fullpath, self._key,
                                     json.dumps(self.to_model()),

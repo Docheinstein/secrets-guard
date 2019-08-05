@@ -76,6 +76,7 @@ def aes_encrypt_file(path, key, content, is_plain_key=True):
     :param is_plain_key: whether the key is plaintext or is already hashed
     :return: whether the file has been encrypted successfully
     """
+
     try:
         with open(path, "wb") as file:
             iv = Random.new().read(AES.block_size)
