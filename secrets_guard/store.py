@@ -4,7 +4,7 @@ import logging
 import os
 import re
 from secrets_guard.crypt import aes_encrypt_file, aes_decrypt_file
-from secrets_guard.utils import tabulate_enum, abort, highlight
+from secrets_guard.utils import tabulate_enum, abort, highlight, enumerate_data
 
 
 # A store is actually a file, encrypted with AES,
@@ -297,20 +297,26 @@ class Store:
 
         return write_ok and os.path.exists(self._fullpath)
 
-    def show(self):
+    def show(self, table=True):
         """
         Prints the data of the store as tabulated data.
+        :param table: whether show the data within a table
         :return: whether the store has been printed successfully
         """
-        print(tabulate_enum(self.fieldsnames(), Store.sorted_secrets(self.secrets)))
+        if table:
+            print(tabulate_enum(self.fieldsnames(), Store.sorted_secrets(self.secrets)))
+        else:
+            print(Store.list_secrets(self.fieldsnames(), Store.sorted_secrets(self.secrets)))
+
         return True
 
-    def grep(self, grep_pattern, colors=True):
+    def grep(self, grep_pattern, colors=True, table=True):
         """
         Performs a regular expression between each field of each secret and
         prints the matches a tabular data.
         :param grep_pattern: the search pattern as a valid regular expression
         :param colors: whether highlight the matches
+        :param table: whether show the data within a table
         :return: whether the secret has been grep-ed successfully
         """
 
@@ -344,7 +350,11 @@ class Store:
             match["ID"] = i
 
         logging.debug("There are %d matches", len(matches))
-        print(tabulate_enum(self.fieldsnames(),  matches, "ID"))
+
+        if table:
+            print(tabulate_enum(self.fieldsnames(), Store.sorted_secrets(matches)))
+        else:
+            print(Store.list_secrets(self.fieldsnames(), Store.sorted_secrets(matches)))
 
         return True
 
@@ -422,3 +432,23 @@ class Store:
         :return: whether the json could be the json of a store
         """
         return j and Store.Json.MODEL in j and Store.Json.DATA in j
+
+    @staticmethod
+    def list_secrets(headers, secrets):
+        """
+        Returns a the content of the secrets, field per field.
+        :param headers: the store headers
+        :param secrets: the secrets
+        :return: a string representing the secrets and their content
+        """
+        s = ""
+        enum_headers, enum_data = enumerate_data(headers, secrets)
+
+        for d in enum_data:
+            for h in enum_headers:
+                if h not in d:
+                    continue
+                s += h + ": " + str(d[h]) + "\n"
+            s += "-" * 20 + "\n"
+
+        return s

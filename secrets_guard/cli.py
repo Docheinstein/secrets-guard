@@ -30,6 +30,7 @@ class Options:
 
     VERBOSE = "verbose"
     NO_COLOR = "no-color"
+    NO_TABLE = "no-table"
     NO_KEYRING = "no-keyring"
 
 

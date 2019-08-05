@@ -122,6 +122,25 @@ def random_string(length=10, alphabet=string.ascii_lowercase):
     return ''.join(random.choice(alphabet) for _ in range(length))
 
 
+def enumerate_data(headers, data, enum_field_name="ID"):
+    """
+    Returns the enumerated headers and data.
+    The field enum_field_name will be added to the headers, and the same field
+    will be set for the items of data equal to their index.
+    :param headers: the headers
+    :param data: the data
+    :param enum_field_name: the field name
+    :return: the enumerated headers and the enumerated data
+    """
+    enum_headers = [enum_field_name] + headers
+    enum_data = []
+    for i, d in enumerate(data):
+        enum_data.append(d)
+        if enum_field_name not in d:
+            enum_data[i][enum_field_name] = i
+    return enum_headers, enum_data
+
+
 def tabulate_enum(headers, data, enum_field_name="ID"):
     """
     Returns a string representation of the given data list using the given headers.
@@ -131,13 +150,9 @@ def tabulate_enum(headers, data, enum_field_name="ID"):
     :param enum_field_name: the name of the header used for enumerate the rows
     :return: the table string of the data
     """
-    headers.insert(0, enum_field_name)
+    enum_headers, enum_data = enumerate_data(headers, data, enum_field_name)
 
-    for i, d in enumerate(data):
-        if enum_field_name not in d:
-            d[enum_field_name] = i
-
-    return tabulate(headers, data)
+    return tabulate(enum_headers, enum_data)
 
 
 def tabulate(headers, data):

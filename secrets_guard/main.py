@@ -53,7 +53,7 @@ COMMANDS
     
         e.g. secrets list
         
-    show [<STORE_NAME>] [--path <PATH>] [--key <STORE_KEY>]
+    show [<STORE_NAME>] [--path <PATH>] [--key <STORE_KEY>] [--no-table]
         Decrypts and shows the content of an entire store.
         
         e.g. secrets show password --key mykey
@@ -70,7 +70,7 @@ COMMANDS
         
         e.g. secrets add password --data Site="Megavideo" Account="me@gmail.com" Password="MyPassword" --key mykey
     
-    grep [<STORE_NAME>] [<SEARCH_PATTERN>] [--path <PATH>] [--key <STORE_KEY>] [--no-color]
+    grep [<STORE_NAME>] [<SEARCH_PATTERN>] [--path <PATH>] [--key <STORE_KEY>] [--no-color] [--no-table]
         Performs a regular expression search between the data of the store.
         The SEARCH_PATTERN can be any valid regular expression.
         The matches will be highlighted unless --no-color is specified.
@@ -384,7 +384,7 @@ def execute_show_store(parsed_args):
     def do_show_store():
         store = Store(store_path, store_name, store_key)
         open_store(store, update_keyring=use_keyring)
-        return store.show()
+        return store.show(table=not parsed_args.has_kwarg(Options.NO_TABLE))
 
     attempt_execute_command(
         do_show_store,
@@ -461,7 +461,9 @@ def execute_grep_secret(parsed_args):
     def do_grep_secret():
         store = Store(store_path, store_name, store_key)
         open_store(store, update_keyring=use_keyring)
-        return store.grep(grep_pattern, colors=not parsed_args.has_kwarg(Options.NO_COLOR))
+        return store.grep(grep_pattern,
+                          colors=not parsed_args.has_kwarg(Options.NO_COLOR),
+                          table=not parsed_args.has_kwarg(Options.NO_TABLE))
 
     attempt_execute_command(
         do_grep_secret,
