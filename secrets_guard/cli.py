@@ -12,6 +12,7 @@ class Commands:
     LIST_STORES = "list"
     SHOW_STORE = "show"
     CHANGE_STORE_KEY = "key"
+    CLEAR_STORE = "clear"
     ADD_SECRET = "add"
     GREP_SECRET = "grep"
     REMOVE_SECRET = "remove"

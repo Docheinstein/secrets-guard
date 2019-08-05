@@ -268,16 +268,17 @@ def obtain_store_path(parsed_args, ensure_existence=True):
     return path
 
 
-def obtain_common_store_arguments(parsed_args, ensure_valid_path=True):
+def obtain_common_store_arguments(parsed_args, ensure_valid_path=True, allow_keyring=True):
     """
     Gets the store path, name and key if present in parsed_args or
     asks the user to input them if not present between parsed_args.
     :param parsed_args: the parsed arguments
     :param ensure_valid_path: whether abort if the path does not exist
+    :param allow_keyring: whether the keyring should be used, unledd --no-keyring is specified
     :return: a tuple with path, name and key
     """
 
-    use_keyring = not parsed_args.has_kwarg(Options.NO_KEYRING)
+    use_keyring = allow_keyring and not parsed_args.has_kwarg(Options.NO_KEYRING)
 
     path = obtain_store_path(parsed_args, ensure_existence=ensure_valid_path)
     name = obtain_store_name(parsed_args)
@@ -309,7 +310,9 @@ def execute_help(_):
 
 def execute_create_store(parsed_args):
     store_path, store_name, store_key, use_keyring = \
-        obtain_common_store_arguments(parsed_args, ensure_valid_path=False)
+        obtain_common_store_arguments(parsed_args,
+                                      ensure_valid_path=False,
+                                      allow_keyring=False)
 
     # Store fields
     raw_store_fields = parsed_args.kwarg_params(Options.STORE_FIELDS)
@@ -417,6 +420,21 @@ def execute_change_store_key(parsed_args):
     )
 
 
+def execute_clear_store(parsed_args):
+    store_path, store_name, store_key, use_keyring = obtain_common_store_arguments(parsed_args)
+
+    def do_clear_store():
+        store = Store(store_path, store_name, store_key)
+        store.open()
+        store.clear_secrets()
+        return store.save()
+
+    attempt_execute_command(
+        do_clear_store,
+        error_message="Error: cannot clear store"
+    )
+
+
 def execute_add_secret(parsed_args):
     store_path, store_name, store_key, use_keyring = obtain_common_store_arguments(parsed_args)
 
@@ -430,18 +448,22 @@ def execute_add_secret(parsed_args):
 
         if secret_data is None:
             secret = {}
+            for f in store.fields:
+                secret[f.name] = prompt(f.name + ": ", secure=f.hidden)
         else:
             secret = keyval_list_to_dict(secret_data)
-
-        for f in store.fields:
-            if f.mandatory:
-                has_mandatory = False
-                for secfield in secret:
-                    if f.name.lower() == secfield.lower():
-                        has_mandatory = True
-                        break
-                if not has_mandatory:
-                    secret[f.name] = prompt(f.name + ": ", secure=f.hidden)
+            # If there are already some fields, ask only the mandatory
+            # (since this is probably non interactive mode and we won't
+            # block the execution)
+            for f in store.fields:
+                if f.mandatory:
+                    has_mandatory = False
+                    for secfield in secret:
+                        if f.name.lower() == secfield.lower():
+                            has_mandatory = True
+                            break
+                    if not has_mandatory:
+                        secret[f.name] = prompt(f.name + ": ", secure=f.hidden)
 
         if not store.add_secrets(secret):
             return False
@@ -553,6 +575,7 @@ def execute_command(parsed_args):
         Commands.LIST_STORES: execute_list_stores,
         Commands.SHOW_STORE: execute_show_store,
         Commands.CHANGE_STORE_KEY: execute_change_store_key,
+        Commands.CLEAR_STORE: execute_clear_store,
         Commands.ADD_SECRET: execute_add_secret,
         Commands.GREP_SECRET: execute_grep_secret,
         Commands.REMOVE_SECRET: execute_remove_secret,

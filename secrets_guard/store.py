@@ -167,6 +167,10 @@ class Store:
 
         logging.debug("Attempting secrets removal %s", secrets_ids)
 
+        # Sort now since we must ensure that the user provided ID
+        # matches the index of the secrets.
+        self._secrets = Store.sorted_secrets(self.secrets)
+
         at_least_one_removed = False
 
         for secret_id in sorted(secrets_ids, reverse=True):
@@ -183,6 +187,12 @@ class Store:
             at_least_one_removed = True
 
         return at_least_one_removed
+
+    def clear_secrets(self):
+        """
+        Removes all  the store's secrets.
+        """
+        self._secrets = []
 
     def modify_secret(self, secret_id, secret_mod):
         """
@@ -288,8 +298,8 @@ class Store:
                 logging.warning("Exception occurred, cannot create directory")
                 return False
 
-        logging.debug("Actually flushing store %s, \nModel: %s\nSecrets: %s",
-                      self._fullpath, self.fields, self.secrets)
+        logging.debug("Actually flushing store %s, \nModel: %s \nSecrets: %s",
+                      self._fullpath, self.fieldsnames(), self.secrets)
 
         write_ok = aes_encrypt_file(self._fullpath, self._key,
                                     json.dumps(self.to_model()),
@@ -422,7 +432,10 @@ class Store:
         :return: the store data sorted
         """
 
-        return sorted(secrets, key=lambda s: list(s.items()))
+        def lowered(tup):
+            return [str(f).lower() for f in tup]
+
+        return sorted(secrets, key=lambda s: [lowered(t) for t in list(s.items())])
 
     @staticmethod
     def is_valid_store_json(j):
