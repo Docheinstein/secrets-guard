@@ -1,23 +1,22 @@
+import copy
 import json
 import logging
 import os
 import re
-from functools import cmp_to_key
-
 from secrets_guard.crypt import aes_encrypt_file, aes_decrypt_file
-from secrets_guard.utils import tabulate_enum, abort
+from secrets_guard.utils import tabulate_enum, abort, highlight
 
 
-# A store is actually a dictionary (and thus serialized as encrypted json)
-# containing "fields" and data".
+# A store is actually a file, encrypted with AES,
+# which content is the following json model.
 # Each element of "data" is called 'secret'.
-
 # e.g.
 # {
-#   "fields": [
+#   "model": [
 #       {
 #        "name": "Field1",
-#        "hidden": true
+#        "hidden": true | false,
+#        "mandatory: true | false
 #       },
 #       ...
 #   ],
@@ -29,6 +28,9 @@ from secrets_guard.utils import tabulate_enum, abort
 #   ]
 # }
 
+
+# Each field of the model of the store is called StoreField
+# e.g. Name or Account or Password)
 class StoreField:
 
     class Json:
@@ -46,9 +48,9 @@ class StoreField:
 
     def to_model(self):
         return {
-            "name": self.name,
-            "hidden": self.hidden,
-            "mandatory": self.mandatory
+            StoreField.Json.NAME: self.name,
+            StoreField.Json.HIDDEN: self.hidden,
+            StoreField.Json.MANDATORY: self.mandatory
         }
 
     @staticmethod
@@ -69,11 +71,35 @@ class Store:
     def __init__(self, path, name, key=None):
         self._path = path
         self._name = name
+
         self._key = key
 
-        self._full_path = os.path.join(path, name)
+        self._fullpath = os.path.join(path, name)
         self._fields = []
         self._secrets = []
+
+    @property
+    def name(self):
+        return self._name
+
+    @property
+    def path(self):
+        return self._key
+
+    @property
+    def key(self):
+        return self._key
+
+    def has_plain_key(self):
+        """
+        Returns whether the key in use is plaintext or already hashed.
+        :return: whether the used key store is plaintext
+        """
+        return isinstance(self._key, str)
+
+    @property
+    def fullpath(self):
+        return self._fullpath
 
     @property
     def fields(self):
@@ -132,22 +158,26 @@ class Store:
 
         return True
 
-    def remove_secrets(self, *secrets_id):
+    def remove_secrets(self, *secrets_ids):
         """
         Removes the secrets with the given id from the secrets.
-        :param secrets_id: the id of the secrets to remove
+        :param secrets_ids: the id of the secrets to remove
         :return whether the secret has been removed
         """
 
+        logging.debug("Attempting secrets removal %s", secrets_ids)
+
         at_least_one_removed = False
 
-        for secret_id in secrets_id:
+        for secret_id in sorted(secrets_ids, reverse=True):
+
+            logging.debug("Attempting to remove %s", secret_id)
 
             if secret_id >= len(self.secrets):
                 logging.warning("Invalid secret id; out of bound")
                 continue
 
-            logging.info("Adding secret: %s", self.secrets[secret_id])
+            logging.info("Removing secret: %s", self.secrets[secret_id])
 
             del self.secrets[secret_id]
             at_least_one_removed = True
@@ -171,18 +201,27 @@ class Store:
 
         return True
 
+    def clone_content(self, store):
+        """
+        Clones the content (only the model and the data)
+        of another store into this store.
+        :param store: the store to copy
+        """
+        self._fields = store.fields
+        self._secrets = store.secrets
+
     def destroy(self):
         """
-        Destroys a store file.
+        Destroys the store file associated with this store and free this store.
         :return: whether the store has been destroyed successfully.
         """
-        logging.info("Destroying store at path '%s'", self._full_path)
+        logging.info("Destroying store at path '%s'", self._fullpath)
 
-        if not os.path.exists(self._full_path):
+        if not os.path.exists(self._fullpath):
             logging.warning("Nothing to destroy, store does not exists")
             return False
 
-        os.remove(self._full_path)
+        os.remove(self._fullpath)
 
         self._fields = []
         self._secrets = []
@@ -191,19 +230,21 @@ class Store:
 
     def open(self, abort_on_fail=True):
         """
-        Opens a store and parses the content.
+        Opens a store and parses the content into this store.
         :param abort_on_fail: whether abort if the store cannot be opened
         :return the store content
         """
 
         def do_store_open():
-            logging.info("Opening store file at: %s", self._full_path)
+            logging.info("Opening store file at: %s", self._fullpath)
+            logging.debug("Using key '%s' ; plainkey? %s", self._key, self.has_plain_key())
 
-            if not os.path.exists(self._full_path):
+            if not os.path.exists(self._fullpath):
                 logging.error("Path does not exist")
                 return None
 
-            store_content = aes_decrypt_file(self._full_path, self._key)
+            store_content = aes_decrypt_file(self._fullpath, self._key,
+                                             is_plain_key=self.has_plain_key())
 
             if not store_content:
                 return None
@@ -227,7 +268,9 @@ class Store:
             abort("Error: unable to open store '%s'" % self._name)
 
         # Parse the content
-        self.parse_model(jstore)
+        self._parse_model(jstore)
+
+        return jstore is not None
 
     def save(self):
         """
@@ -235,7 +278,7 @@ class Store:
         :return: whether the store has been written successfully
         """
 
-        logging.info("Writing store file at: %s", self._full_path)
+        logging.info("Writing store file at: %s", self._fullpath)
 
         if not os.path.exists(self._path):
             logging.debug("Creating path %s since it does not exists", self._path)
@@ -245,11 +288,13 @@ class Store:
                 logging.warning("Exception occurred, cannot create directory")
                 return False
 
-        logging.debug("Actually flushing store %s content: %s", self._full_path, self.secrets)
+        logging.debug("Actually flushing store %s content: %s", self._fullpath, self.secrets)
 
-        write_ok = aes_encrypt_file(self._full_path, self._key, json.dumps(self.to_model()))
+        write_ok = aes_encrypt_file(self._fullpath, self._key,
+                                    json.dumps(self.to_model()),
+                                    is_plain_key=self.has_plain_key())
 
-        return write_ok and os.path.exists(self._full_path)
+        return write_ok and os.path.exists(self._fullpath)
 
     def show(self):
         """
@@ -259,25 +304,46 @@ class Store:
         print(tabulate_enum(self.fieldsnames(), Store.sorted_secrets(self.secrets)))
         return True
 
-    def grep(self, grep_pattern):
+    def grep(self, grep_pattern, colors=True):
         """
         Performs a regular expression between each field of each secret and
         prints the matches a tabular data.
         :param grep_pattern: the search pattern as a valid regular expression
+        :param colors: whether highlight the matches
         :return: whether the secret has been grep-ed successfully
         """
 
         matches = []
-        for d in self.secrets:
-            for i, f in enumerate(d):
-                logging.debug("Comparing %s against %s", f, grep_pattern)
-                if re.search(grep_pattern, d[f]):
-                    logging.debug("Found match: %s", d)
-                    d["ID"] = i
-                    matches.append(d)
-                    break
+        for secret in self.secrets:
+            secretmatch = None
+            for field in secret:
+                # logging.debug("Comparing %s against %s", field, grep_pattern)
+
+                re_matches = re.finditer(grep_pattern, secret[field], re.IGNORECASE)
+
+                for re_match in re_matches:
+                    startpos, endpos = re_match.span()
+                    logging.debug("Found re match in: %s ", secret[field])
+
+                    if colors:
+                        # Do a copy, leave 'secret' as it is
+                        if not secretmatch:
+                            secretmatch = copy.copy(secret)
+
+                        # Highlight
+                        secretmatch[field] = highlight(secret[field], startpos, endpos)
+                    else:
+                        secretmatch = secret
+
+            if secretmatch:
+                matches.append(secretmatch)
+
+        matches = Store.sorted_secrets(matches)
+        for i, match in enumerate(matches):
+            match["ID"] = i
+
         logging.debug("There are %d matches", len(matches))
-        print(tabulate_enum(self.fieldsnames(),  Store.sorted_secrets(matches), "ID"))
+        print(tabulate_enum(self.fieldsnames(),  matches, "ID"))
 
         return True
 
@@ -295,7 +361,7 @@ class Store:
                 if store_field.lower() == mod_field.lower():
                     secret[store_field] = secret_mod[mod_field]
 
-    def parse_model(self, store_model):
+    def _parse_model(self, store_model):
         """
         Parse the json content and fill the fields and secrets of this store
         accordingly.
@@ -322,7 +388,7 @@ class Store:
         }
 
     def __str__(self):
-        s = "Store path: " + self._full_path + "\n"
+        s = "Store path: " + self._fullpath + "\n"
 
         s += "Fields: "
 
@@ -349,4 +415,9 @@ class Store:
 
     @staticmethod
     def is_valid_store_json(j):
+        """
+        Returns whether the given json is a valid json for a store.
+        :param j: the json to check
+        :return: whether the json could be the json of a store
+        """
         return j and Store.Json.MODEL in j and Store.Json.DATA in j

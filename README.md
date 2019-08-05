@@ -63,6 +63,13 @@ The entire content of a store can be seen using `show`.
 secrets show password --key mykey
 ```
 
+#### key
+Changes the key of the store.
+
+```
+secrets key newkey --key oldkey
+```
+
 ### Secret commands
 
 #### add
@@ -105,7 +112,7 @@ NAME
     secrets - encrypt and decrypt private information (such as passwords)
 
 SYNOPSIS
-    secrets <COMMAND> [COMMAND_OPTIONS] [OTHER_OPTIONS]
+    secrets <COMMAND> [COMMAND_OPTIONS] [GENERAL_OPTIONS]
     
 DESCRIPTION
     Stores and retrieves encrypted data to/from files.
@@ -121,9 +128,17 @@ COMMANDS
         
     create [<STORE_NAME>] [--fields FIELDS] [--path <PATH>] [--key <STORE_KEY>]
         Creates a new store at the given path using the given key.
-        The FIELDS must be expressed as a list of field names.
+        The FIELDS must be expressed as a space separated list of field names.
+        
+        Furthermore some attributes can be expressed for the fields by appending
+        "+<attr_code_1><attr_code_2>..." after the field name.
+        
+        The available attributes are
+        1) h: hidden (the user input is not shown)
+        2) m: mandatory (the field must contain a non empty string)
         
         e.g. secrets create password --fields Site Account Password Other --key mykey
+        e.g. secrets create password --fields Site+m Account+m Password+mh Other --mykey
         
     destroy [<STORE_NAME>] [--path <PATH>]
         Destroys the store at the given path.
@@ -141,24 +156,32 @@ COMMANDS
         
         e.g. secrets show password --key mykey
         
+    key [<STORE_NAME>] [<NEW_STORE_KEY>] [--path <PATH>] [--key <STORE_KEY>]
+        Changes the key of the store from STORE_KEY to NEW_STORE_KEY.
+        
+        e.g. secrets key newkey --key currentkey
+        
     add [<STORE_NAME>] [--data DATA] [--path <PATH>] [--key <STORE_KEY>]
         Inserts a new secret into a store.
-        The DATA must be expressed as a key=value list.
+        The DATA must be expressed as a key=value list where the key should
+        be a field of the store.
         
         e.g. secrets add password --data Site="Megavideo" Account="me@gmail.com" Password="MyPassword" --key mykey
     
-    grep [<STORE_NAME>] [<SEARCH_PATTERN>] [--path <PATH>] [--key <STORE_KEY>]
+    grep [<STORE_NAME>] [<SEARCH_PATTERN>] [--path <PATH>] [--key <STORE_KEY>] [--no-color]
         Performs a regular expression search between the data of the store.
         The SEARCH_PATTERN can be any valid regular expression.
+        The matches will be highlighted unless --no-color is specified.
         
         e.g. secrets grep password MyPass --key mykey
         e.g. secrets grep password "^My.*word" --key mykey
         
-    remove [<STORE_NAME>] [<SECRET_ID>] [--path <PATH>] [--key <STORE_KEY>]
-        Removes the secret with the given SECRET_ID from the store.
-        The SECRET_ID should be retrieved using the secrets grep command.
+    remove [<STORE_NAME>] [<SECRET_IDS>*] [--path <PATH>] [--key <STORE_KEY>]
+        Removes the secret(s) with the given SECRET_IDS from the store.
+        The SECRET_IDS should be retrieved using the secrets grep command.
         
         e.g. secrets remove password 12
+        e.g. secrets remove password 12 14 15 7 11
     
     modify [<STORE_NAME>] [<SECRET_ID>] [--data DATA] [--path <PATH>] [--key <STORE_KEY>]
         Modifies the secret with the given SECRET_ID using the given DATA.
@@ -166,9 +189,14 @@ COMMANDS
     
         e.g. secrets modify password 11 --data Password="MyNewPassword" --key mykey
         
-OPTIONS
+GENERAL OPTIONS
     --verbose
         Prints debug statements.
+    
+    --no-keyring
+        Do not use the keyring for retrieve the password.
+        By default a password used for open a store is cached in the keyring
+        for further uses.
 ``` 
 
 

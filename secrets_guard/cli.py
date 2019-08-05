@@ -1,6 +1,9 @@
+# Gather all the arguments recognized by the command line
+
+
 class Commands:
     """
-    Available commands.
+    Secrets Guard commands.
     """
 
     HELP = "help"
@@ -8,6 +11,7 @@ class Commands:
     DESTROY_STORE = "destroy"
     LIST_STORES = "list"
     SHOW_STORE = "show"
+    CHANGE_STORE_KEY = "key"
     ADD_SECRET = "add"
     GREP_SECRET = "grep"
     REMOVE_SECRET = "remove"
@@ -16,16 +20,22 @@ class Commands:
 
 class Options:
     """
-    Available options.
+    Secrets Guard options (prefixed with --).
     """
 
     STORE_FIELDS = "fields"
     STORE_KEY = "key"
     STORE_PATH = "path"
     SECRET_DATA = "data"
+
     VERBOSE = "verbose"
+    NO_COLOR = "no-color"
+    NO_KEYRING = "no-keyring"
 
 
 class SecretAttributes:
+    """
+    Recognized secrets' attributes.
+    """
     HIDDEN = "h"
     MANDATORY = "m"

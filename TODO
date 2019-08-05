@@ -1,3 +1,4 @@
-Implement a customization mechanism for fields, in particular
-1) Private fields: ask the user using getpass instead of input
-2) Order fields: order the data of 'show' and 'grep' using the value of this field
+1) Add tests
+2) Add short options (- instead of --)
+3) Implemented AES from scratch just for fun and for remove a dependency
+4) Implement store meta details (creation date, insertion date, last edit date)
