@@ -331,7 +331,7 @@ class Store:
         """
 
         matches = []
-        for secret in self.secrets:
+        for i, secret in enumerate(Store.sorted_secrets(self.secrets)):
             secretmatch = None
             for field in secret:
                 # logging.debug("Comparing %s against %s", field, grep_pattern)
@@ -353,18 +353,15 @@ class Store:
                         secretmatch = secret
 
             if secretmatch:
+                secretmatch["ID"] = i
                 matches.append(secretmatch)
-
-        matches = Store.sorted_secrets(matches)
-        for i, match in enumerate(matches):
-            match["ID"] = i
 
         logging.debug("There are %d matches", len(matches))
 
         if table:
-            print(tabulate_enum(self.fieldsnames(), Store.sorted_secrets(matches)))
+            print(tabulate_enum(self.fieldsnames(), matches))
         else:
-            print(Store.list_secrets(self.fieldsnames(), Store.sorted_secrets(matches)))
+            print(Store.list_secrets(self.fieldsnames(), matches))
 
         return True
 
