@@ -457,11 +457,19 @@ class Store:
         s = ""
         enum_headers, enum_data = enumerate_data(headers, secrets)
 
-        for d in enum_data:
-            for h in enum_headers:
+        for di, d in enumerate(enum_data):
+            is_last_data = di >= len(enum_data) - 1
+
+            for hi, h in enumerate(enum_headers):
+                is_last_header = hi >= len(enum_headers) - 1
+
                 if h not in d:
                     continue
-                s += h + ": " + str(d[h]) + "\n"
-            s += "-" * 20 + "\n"
+                s += h + ": " + str(d[h])
+                if not is_last_data or not is_last_header:
+                    s += "\n"
+
+            if not is_last_data:
+                s += "-" * 20 + "\n"
 
         return s
