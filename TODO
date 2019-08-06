@@ -1,5 +1,4 @@
-1) Add tests
-2) Add short options (- instead of --)
-3) Implemented AES from scratch just for fun and for remove a dependency
-4) Implement store meta details (creation date, insertion date, last edit date)
-5) Add a command for modify the store model (add/remove fields)
+1) Add short options (- instead of --)
+2) Implement store meta details (creation date, insertion date, last edit date)
+3) Add a command for modify the store model (add/remove fields)
+666) Implemented AES from scratch just for fun and for remove a dependency

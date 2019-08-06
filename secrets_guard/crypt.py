@@ -37,47 +37,12 @@ def aes_decrypt(encrypted_content, key, is_plain_key=True):
     """
     Decrypts an encrypted content using the given key
     (looking for the IV at the beginning of the file).
-    :param encrypted_content: the encrypted content
+    :param encrypted_content: the encrypted content (as b64 text)
     :param key: the key
     :param is_plain_key: whether the key is plaintext or is already hashed
     :return: the plaintext
     """
 
-    """
-    logging.trace("aes_decrypt() ==========")
-    logging.trace("encrypted_content %s", encrypted_content)
-    logging.trace("key %s", key)
-    logging.trace("is_plain_key %s", is_plain_key)
-
-    key = aes_key(key) if is_plain_key else key
-
-    logging.trace("aes_key %s", key)
-
-    decoded_content = base64.b64decode(encrypted_content)
-
-    logging.trace("decoded_content: %s", decoded_content)
-
-    iv = decoded_content[:AES.block_size]
-
-    logging.trace("iv: %s", iv)
-
-    cipher = AES.new(key, mode=AES.MODE_CBC, IV=iv)
-
-    decoded_content_body = decoded_content[AES.block_size:]
-    logging.trace("decoded_content_body: %s", decoded_content_body)
-
-    decrypted = cipher.decrypt(decoded_content_body)
-
-    logging.trace("decrypted: %s", decrypted)
-
-    unpadded_decrypted = unpad(decrypted, AES.block_size)
-
-    logging.trace("unpadded_decrypted: %s", unpadded_decrypted)
-
-    logging.trace("aes_decrypt() END ==========")
-
-    return unpadded_decrypted
-    """
     key = aes_key(key) if is_plain_key else key
 
     decoded_content = base64.b64decode(encrypted_content)
@@ -85,7 +50,7 @@ def aes_decrypt(encrypted_content, key, is_plain_key=True):
     body = decoded_content[AES.block_size:]
 
     cipher = AES.new(key, mode=AES.MODE_CBC, IV=iv)
-    return unpad(cipher.decrypt(body), AES.block_size)
+    return unpad(cipher.decrypt(body), AES.block_size).decode("utf-8")
 
 
 def aes_encrypt_file(path, key, content, is_plain_key=True):

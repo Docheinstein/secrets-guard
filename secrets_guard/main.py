@@ -386,7 +386,12 @@ def execute_destroy_store(parsed_args):
 
 
 def execute_list_stores(parsed_args):
-    store_path = obtain_store_path(parsed_args)
+    store_path = obtain_store_path(parsed_args, ensure_existence=False)
+
+    if not os.path.exists(store_path):
+        logging.warning("Store path does not exists")
+        # Not an error, just no stores
+        return
 
     for filename in os.listdir(store_path):
         # Consider only store files

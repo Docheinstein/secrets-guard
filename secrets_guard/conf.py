@@ -12,7 +12,7 @@ class LoggingLevels:
 
 
 class Conf:
-    LOGGING_LEVEL = LoggingLevels.TRACE
+    LOGGING_LEVEL = LoggingLevels.WARNING
     STORE_EXTENSION = ".sec"
     KEYRING_EXTENSION = ".skey"
     DEFAULT_PATH = os.path.join(str(Path.home()), ".secrets")
