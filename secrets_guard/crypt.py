@@ -4,28 +4,7 @@ import logging
 
 from Crypto import Random
 from Crypto.Cipher import AES
-
-
-# Contains methods for crypt and decrypt a file using AES-256
-
-
-def aes_pad(s, bs):
-    """
-    Pads the string using the given block size.
-    :param s: the string to pad
-    :param bs: the block size
-    :return: the padded string
-    """
-    return s + (bs - len(s) % bs) * chr(bs - len(s) % bs)
-
-
-def aes_unpad(s):
-    """
-    Unpads the string padded with aes_pad().
-    :param s: the string to unpad
-    :return: the unpadded string
-    """
-    return s[:-ord(s[len(s) - 1:])]
+from Crypto.Util.Padding import pad, unpad
 
 
 def aes_key(key):
@@ -47,8 +26,10 @@ def aes_encrypt(plaintext, iv, key, is_plain_key=True):
     :param is_plain_key: whether the key is plaintext or is already hashed
     :return: the encrypted content
     """
-    padded_text = aes_pad(plaintext, AES.block_size)
-    cipher = AES.new(aes_key(key) if is_plain_key else key, mode=AES.MODE_CBC, IV=iv)
+    key = aes_key(key) if is_plain_key else key
+
+    padded_text = pad(bytes(plaintext, encoding="utf-8"), AES.block_size)
+    cipher = AES.new(key, mode=AES.MODE_CBC, IV=iv)
     return base64.b64encode(iv + cipher.encrypt(padded_text))
 
 
@@ -61,11 +42,51 @@ def aes_decrypt(encrypted_content, key, is_plain_key=True):
     :param is_plain_key: whether the key is plaintext or is already hashed
     :return: the plaintext
     """
-    decoded_text = base64.b64decode(encrypted_content)
-    iv = decoded_text[:AES.block_size]
-    cipher = AES.new(aes_key(key) if is_plain_key else key, mode=AES.MODE_CBC, IV=iv)
-    return aes_unpad(cipher.decrypt(decoded_text[AES.block_size:])).decode("utf-8")
-    
+
+    """
+    logging.trace("aes_decrypt() ==========")
+    logging.trace("encrypted_content %s", encrypted_content)
+    logging.trace("key %s", key)
+    logging.trace("is_plain_key %s", is_plain_key)
+
+    key = aes_key(key) if is_plain_key else key
+
+    logging.trace("aes_key %s", key)
+
+    decoded_content = base64.b64decode(encrypted_content)
+
+    logging.trace("decoded_content: %s", decoded_content)
+
+    iv = decoded_content[:AES.block_size]
+
+    logging.trace("iv: %s", iv)
+
+    cipher = AES.new(key, mode=AES.MODE_CBC, IV=iv)
+
+    decoded_content_body = decoded_content[AES.block_size:]
+    logging.trace("decoded_content_body: %s", decoded_content_body)
+
+    decrypted = cipher.decrypt(decoded_content_body)
+
+    logging.trace("decrypted: %s", decrypted)
+
+    unpadded_decrypted = unpad(decrypted, AES.block_size)
+
+    logging.trace("unpadded_decrypted: %s", unpadded_decrypted)
+
+    logging.trace("aes_decrypt() END ==========")
+
+    return unpadded_decrypted
+    """
+    key = aes_key(key) if is_plain_key else key
+
+    decoded_content = base64.b64decode(encrypted_content)
+    iv = decoded_content[:AES.block_size]
+    body = decoded_content[AES.block_size:]
+
+    cipher = AES.new(key, mode=AES.MODE_CBC, IV=iv)
+    return unpad(cipher.decrypt(body), AES.block_size)
+
 
 def aes_encrypt_file(path, key, content, is_plain_key=True):
     """

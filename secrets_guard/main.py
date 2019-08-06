@@ -5,7 +5,7 @@ import traceback
 
 from secrets_guard.args import Args
 from secrets_guard.cli import Options, Commands, SecretAttributes
-from secrets_guard.conf import Conf
+from secrets_guard.conf import Conf, LoggingLevels
 from secrets_guard.keyring import keyring_get_key, keyring_put_key, keyring_has_key, keyring_del_key
 from secrets_guard.store import Store, StoreField
 from secrets_guard.utils import keyval_list_to_dict, abort, terminate, is_empty_string, prompt, is_string
@@ -107,6 +107,16 @@ GENERAL OPTIONS
 
 def init_logging(parsed_args):
     """ Initializes the logging. """
+
+    logging.addLevelName(LoggingLevels.TRACE, "TRACE")
+
+    def trace(message, *args, **kws):
+        if logging.getLogger().isEnabledFor(LoggingLevels.TRACE):
+            logging.log(LoggingLevels.TRACE, message, *args, **kws)
+
+    logging.trace = trace
+    logging.Logger.trace = trace
+
     logging.basicConfig(level=Conf.LOGGING_LEVEL,
                         format="[%(levelname)s] %(asctime)s %(message)s",
                         datefmt='%d/%m/%y %H:%M:%S')

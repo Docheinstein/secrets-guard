@@ -9,7 +9,7 @@ def read(file_name):
 
 setup(
     name="secrets-guard",
-    version="0.3",
+    version="0.4",
 
     # Requires python3.5
     python_requires=">=3",
@@ -33,6 +33,9 @@ setup(
     # Tests
     test_suite="tests",
 
+    # Dependencies
+    install_requires=['pycryptodome'],
+
     # Metadata
     author="Stefano Dottore",
     author_email="docheinstein@gmail.com",
@@ -41,6 +44,5 @@ setup(
     long_description=read('README.rst'),
     license="MIT",
     keywords="pass password private key encrypt decrypt crypt",
-    url="https://github.com/Docheinstein/secrets-guard", install_requires=['Crypto']
-    # install_requires=['Crypto']
+    url="https://github.com/Docheinstein/secrets-guard",
 )
