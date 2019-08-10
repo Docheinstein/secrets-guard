@@ -144,6 +144,19 @@ class Store:
 
         return self._secrets
 
+    def secret(self, index):
+        """
+        Returns the secret at the given index.
+        Note that  is is not the same as .secrets[index] since the secrets
+        returned by secrets() are unordered.
+        :param index: the secret index
+        :return: the secret with the given index or None if it does not exist
+        """
+        ss = Store.sorted_secrets(self.secrets)
+        if index < len(ss):
+            return ss[index]
+        return None
+
     def add_secrets(self, *secrets):
         """
         Adds secrets to the store.
@@ -205,6 +218,10 @@ class Store:
         if not secret_id < len(self.secrets):
             logging.error("Invalid secret id; out of bound")
             return False
+
+        # Sort now since we must ensure that the user provided ID
+        # matches the index of the secrets.
+        self._secrets = Store.sorted_secrets(self.secrets)
 
         secret = self.secrets[secret_id]
         self._apply_secret_change(secret, secret_mod)
@@ -374,10 +391,14 @@ class Store:
         """
         store_fields = self.fieldsnames()
 
+        logging.debug("Applying secret mod.\nCurrent: %s\nMod: %s", secret, secret_mod)
+
         for store_field in store_fields:
             for mod_field in secret_mod:
                 if store_field.lower() == mod_field.lower():
                     secret[store_field] = secret_mod[mod_field]
+
+        logging.debug("Secret after mod: %s", secret)
 
     def _parse_model(self, store_model):
         """

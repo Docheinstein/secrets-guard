@@ -550,19 +550,26 @@ def execute_modify_secret(parsed_args):
         if secret_data is None:
             secret_mod = {}
 
-            if secret_id >= len(store.secrets):
+            secret = store.secret(secret_id)
+
+            if not secret:
                 abort("Error: invalid secret ID; index out of bound")
 
-            secret = store.secrets[secret_id]
+            logging.debug("Will modify secret %s", secret)
 
             print("Which field to modify?")
             choice = len(store.fields)
 
+            max_length = 0
+
+            for f in store.fields:
+                max_length = max(len(f.name), max_length)
+
             while choice >= len(store.fields):
                 for i, f in enumerate(store.fields):
-                    s = str(i) + ") " + f.name
-                    if f in secret:
-                        s = str(s.ljust(14)) + "(" + secret[f].name + ")"
+                    s = str(i) + ") " + f.name.ljust(max_length)
+                    if f.name in secret:
+                        s += " (" + (secret[f.name] if not f.hidden else "*" * len(secret[f.name])) + ")"
                     print(s)
                 choice = int(input(": "))
 
@@ -579,7 +586,7 @@ def execute_modify_secret(parsed_args):
 
     attempt_execute_command(
         do_modify_secret,
-        error_message="Error: cannot remove secret with ID %d (index out of bound?)" % secret_id
+        error_message="Error: cannot modify secret with ID %d (index out of bound?)" % secret_id
     )
 
 
