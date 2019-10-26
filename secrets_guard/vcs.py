@@ -1,7 +1,12 @@
 import logging
+import subprocess
 
 from git import Repo
 from subprocess import run
+
+
+def git_run(*args):
+    run(["git"] + list(args), stdin=subprocess.PIPE, stdout=subprocess.PIPE)
 
 
 def push(local_path, remote_branch, commit_message):
@@ -33,11 +38,11 @@ def push(local_path, remote_branch, commit_message):
 
     logging.debug("Adding . to stage")
     # repository.index.add(".")
-    run(["git", "add", "."])
+    git_run("add", ".")
 
     logging.debug("Committing with message: %s", commit_message)
     # repository.index.commit(commit_message)
-    run(["git", "commit", "-m", commit_message])
+    git_run("commit", "-m", commit_message)
 
     logging.debug("Pushing to branch %s", remote_branch)
     # remote = repository.remote(name=remote_branch)
@@ -53,6 +58,6 @@ def push(local_path, remote_branch, commit_message):
     # remote.push(progress=progress_handler)
     # repository.git.push(remote_branch)
 
-    run(["git", "push"])
+    git_run("push")
 
     return True
