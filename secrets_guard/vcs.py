@@ -13,7 +13,10 @@ def git_run(*args):
                             stderr=subprocess.PIPE,
                             stdin=subprocess.PIPE,
                             universal_newlines=True)
+    stdout, stderr = proc.communicate()
+
     print(proc.stdout)
+    print(proc.stderr)
     print(proc.stdin)
 
 
