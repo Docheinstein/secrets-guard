@@ -6,7 +6,6 @@ import re
 from secrets_guard.crypt import aes_encrypt_file, aes_decrypt_file
 from secrets_guard.utils import tabulate_enum, abort, highlight, enumerate_data
 
-
 # A store is actually a file, encrypted with AES,
 # which content is the following json model.
 # Each element of "data" is called 'secret'.
@@ -84,7 +83,7 @@ class Store:
 
     @property
     def path(self):
-        return self._key
+        return self._path
 
     @property
     def key(self):

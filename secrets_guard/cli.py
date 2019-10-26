@@ -7,6 +7,8 @@ class Commands:
     """
 
     HELP = "help"
+    PUSH = "push"
+    PULL = "pull"
     CREATE_STORE = "create"
     DESTROY_STORE = "destroy"
     LIST_STORES = "list"
@@ -28,6 +30,8 @@ class Options:
     STORE_KEY = "key"
     STORE_PATH = "path"
     SECRET_DATA = "data"
+
+    MESSAGE = "message"
 
     VERBOSE = "verbose"
     NO_COLOR = "no-color"

@@ -1,8 +1,10 @@
+import datetime
 import logging
 import os
 import sys
 import traceback
 
+from secrets_guard import vcs
 from secrets_guard.args import Args
 from secrets_guard.cli import Options, Commands, SecretAttributes
 from secrets_guard.conf import Conf, LoggingLevels
@@ -24,9 +26,20 @@ DESCRIPTION
     
     One of the following command must be specified:
     
-COMMANDS
+UTILITY COMMANDS
+
     help
         Shows this help message.
+        
+GLOBAL COMMANDS
+                        
+    list [--path <PATH>]
+        List the names of the stores found at the path specified
+        by --path (or at the default one if not specified).
+    
+        e.g. secrets list
+ 
+STORE COMMANDS
         
     create [<STORE_NAME>] [--fields FIELDS] [--path <PATH>] [--key <STORE_KEY>]
         Creates a new store at the given path using the given key.
@@ -46,18 +59,7 @@ COMMANDS
         Destroys the store at the given path.
         
         e.g. secrets destroy password
-                
-    list [--path <PATH>]
-        List the names of the stores found at the path specified
-        by --path (or at the default one if not specified).
-    
-        e.g. secrets list
-        
-    show [<STORE_NAME>] [--path <PATH>] [--key <STORE_KEY>] [--no-table]
-        Decrypts and shows the content of an entire store.
-        
-        e.g. secrets show password --key mykey
-        
+
     key [<STORE_NAME>] [<NEW_STORE_KEY>] [--path <PATH>] [--key <STORE_KEY>]
         Changes the key of the store from STORE_KEY to NEW_STORE_KEY.
         
@@ -67,13 +69,11 @@ COMMANDS
         Clears the content (all the secrets) of a store.
         The model is left unchanged.
         
-    add [<STORE_NAME>] [--data DATA] [--path <PATH>] [--key <STORE_KEY>]
-        Inserts a new secret into a store.
-        The DATA must be expressed as a key=value list where the key should
-        be a field of the store.
+    show [<STORE_NAME>] [--path <PATH>] [--key <STORE_KEY>] [--no-table]
+        Decrypts and shows the content of an entire store.
         
-        e.g. secrets add password --data Site="Megavideo" Account="me@gmail.com" Password="MyPassword" --key mykey
-    
+        e.g. secrets show password --key mykey
+            
     grep [<STORE_NAME>] [<SEARCH_PATTERN>] [--path <PATH>] [--key <STORE_KEY>] [--no-color] [--no-table]
         Performs a regular expression search between the data of the store.
         The SEARCH_PATTERN can be any valid regular expression.
@@ -82,6 +82,15 @@ COMMANDS
         e.g. secrets grep password MyPass --key mykey
         e.g. secrets grep password "^My.*word" --key mykey
         
+SECRET COMMANDS
+        
+    add [<STORE_NAME>] [--data DATA] [--path <PATH>] [--key <STORE_KEY>]
+        Inserts a new secret into a store.
+        The DATA must be expressed as a key=value list where the key should
+        be a field of the store.
+        
+        e.g. secrets add password --data Site="Megavideo" Account="me@gmail.com" Password="MyPassword" --key mykey
+
     remove [<STORE_NAME>] [<SECRET_IDS>*] [--path <PATH>] [--key <STORE_KEY>]
         Removes the secret(s) with the given SECRET_IDS from the store.
         The SECRET_IDS should be retrieved using the secrets grep command.
@@ -94,7 +103,20 @@ COMMANDS
         The DATA must be expressed as a key=value list.
     
         e.g. secrets modify password 11 --data Password="MyNewPassword" --key mykey
+               
+GIT COMMANDS
+
+    push <REMOTE> [--path <PATH>] [--message <COMMIT_MESSAGE>]
+        Commits and pushes to the remote git branch.
+        The commit message can be specified using --message.
         
+        e.g. secrets push origin --key mykey      
+          
+    pull <REMOTE> [--path <PATH>]
+        Pull from the remote git branch.
+        
+        e.g. secrets pull origin --key mykey
+
 GENERAL OPTIONS
     --verbose
         Prints debug statements.
@@ -231,6 +253,23 @@ def obtain_argument_param(parsed_args, argument, prompt_text, secure=False):
         return param
 
     return prompt(prompt_text, secure=secure)
+
+
+def obtain_optional_argument_param(parsed_args, argument, default_value=None):
+    """
+    Gets the first argument's param from parsed_args or returns the default value
+    :param parsed_args: the parsed arguments
+    :param argument: the name of the argument for which get the param
+    :param default_value the value to return if the parameter is not present
+    :return: the obtained value or the default value if the parameter if the argument
+            is not present
+    """
+    param = parsed_args.kwarg_param(argument)
+
+    if param:
+        return param
+
+    return default_value
 
 
 def obtain_store_name(parsed_args):
@@ -412,6 +451,31 @@ def execute_show_store(parsed_args):
         do_show_store,
         error_message="Error: cannot show store"
     )
+
+
+def execute_push_store(parsed_args):
+    store_path = obtain_store_path(parsed_args)
+    remote_branch = obtain_positional_argument(parsed_args, 0, "Remote branch name: ")
+    commit_message = obtain_optional_argument_param(parsed_args, Options.MESSAGE)
+
+    def do_push_store():
+        nonlocal commit_message
+
+        logging.debug("Will push %s to branch %s", store_path, remote_branch)
+
+        if not commit_message:
+            commit_message = "Committed on " + datetime.datetime.now().strftime("%H:%M:%S %Y/%m/%d")
+
+        return vcs.push(store_path, remote_branch, commit_message)
+
+    attempt_execute_command(
+        do_push_store,
+        error_message="Error: cannot push"
+    )
+
+
+def execute_pull_store(parsed_args):
+    pass
 
 
 def execute_change_store_key(parsed_args):
@@ -596,6 +660,8 @@ def execute_command(parsed_args):
 
     dispatcher = {
         Commands.HELP: execute_help,
+        Commands.PUSH: execute_push_store,
+        Commands.PULL: execute_pull_store,
         Commands.CREATE_STORE: execute_create_store,
         Commands.DESTROY_STORE: execute_destroy_store,
         Commands.LIST_STORES: execute_list_stores,

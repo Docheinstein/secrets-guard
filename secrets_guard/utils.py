@@ -93,6 +93,7 @@ def dict_of_lists_to_str(d, sep=": "):
         s += k
         if len(d[k]) > 0:
             s += sep + list_to_str(d[k]) + " | "
+        s += "; "
     return s
 
 
