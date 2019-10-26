@@ -14,6 +14,8 @@ def git_run(*args):
                             stdin=subprocess.PIPE,
                             universal_newlines=True)
     stdout, stderr = proc.communicate()
+    print(stdout)
+    print(stderr)
     proc.wait(60)
 
 def push(local_path, remote_branch, commit_message):
