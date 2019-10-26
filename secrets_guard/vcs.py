@@ -13,8 +13,8 @@ def git_run(*args):
                             stderr=subprocess.PIPE,
                             stdin=subprocess.PIPE,
                             universal_newlines=True)
-    proc.wait(60)
     stdout, stderr = proc.communicate()
+    proc.wait(60)
 
 def push(local_path, remote_branch, commit_message):
     """
