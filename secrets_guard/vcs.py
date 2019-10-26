@@ -2,13 +2,12 @@ import logging
 import subprocess
 
 from git import Repo
-from subprocess import run
 
 
 def git_run(*args):
     run_args = ["git"] + list(args)
     print("run_args: ", run_args)
-    run(run_args, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+    subprocess.Popen(run_args, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
 
 
 def push(local_path, remote_branch, commit_message):
