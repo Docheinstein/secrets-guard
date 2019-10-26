@@ -6,7 +6,9 @@ from subprocess import run
 
 
 def git_run(*args):
-    run(["git"] + list(args), stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+    run_args = ["git"] + list(args)
+    print("run_args: ", run_args)
+    run(run_args, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
 
 
 def push(local_path, remote_branch, commit_message):
