@@ -8,7 +8,7 @@ def git_run(*args):
     # subprocess.run([, stdout=subprocess.STDOUT, stderr=subprocess.STDOUT)
     run_args = ["git"] + list(args)
     print("run_args", run_args)
-    proc = subprocess.run(run_args, capture_output=True, universal_newlines=True)
+    proc = subprocess.run(run_args, capture_output=True, stdin=subprocess.PIPE, universal_newlines=True)
     print(proc.stdout)
 
 
