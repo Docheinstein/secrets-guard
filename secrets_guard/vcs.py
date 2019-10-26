@@ -10,6 +10,7 @@ def git_run(*args):
     print("run_args", run_args)
     proc = subprocess.run(run_args, capture_output=True, stdin=subprocess.PIPE, universal_newlines=True)
     print(proc.stdout)
+    print(proc.stderr)
 
 
 def push(local_path, remote_branch, commit_message):
