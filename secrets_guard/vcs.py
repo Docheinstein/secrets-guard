@@ -16,6 +16,7 @@ def git_run(*args):
     stdout, stderr = proc.communicate()
     print(stdout)
     print(stderr)
+    print(proc.stdin)
     proc.wait(60)
 
 def push(local_path, remote_branch, commit_message):
