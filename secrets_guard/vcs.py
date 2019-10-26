@@ -7,7 +7,7 @@ from git import Repo
 def git_run(*args):
     run_args = ["git"] + list(args)
     print("run_args: ", run_args)
-    subprocess.Popen(run_args, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+    subprocess.Popen(run_args, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
 
 def push(local_path, remote_branch, commit_message):
