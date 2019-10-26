@@ -5,8 +5,7 @@ from git import Repo
 
 
 def git_run(*args):
-    proc = subprocess.Popen(["git"] + list(args), stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    stdoutdata, stderrdata = proc.communicate()
+    subprocess.run(["git"] + list(args), capture_output=True, stdin=subprocess.PIPE)
 
 
 def push(local_path, remote_branch, commit_message):
@@ -36,12 +35,12 @@ def push(local_path, remote_branch, commit_message):
         logging.error("Not a git repository, cannot push")
         return False
 
-    logging.debug("Adding . to stage")
-    # repository.index.add(".")
+    # logging.debug("Adding . to stage")
+    # # repository.index.add(".")
     git_run("add", ".")
-
-    logging.debug("Committing with message: %s", commit_message)
-    # repository.index.commit(commit_message)
+    #
+    # logging.debug("Committing with message: %s", commit_message)
+    # # repository.index.commit(commit_message)
     git_run("commit", "-m", commit_message)
 
     logging.debug("Pushing to branch %s", remote_branch)
