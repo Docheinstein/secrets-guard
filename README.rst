@@ -37,6 +37,19 @@ Each command works either in interactive or batch mode, depending on the provide
 
 For example, if the ``key`` is not provided with ``--key`` it will be asked to the user.
 
+Global commands
+~~~~~~~~~~~~~~~
+
+list
+^^^^
+
+For list all the store within a path (the default if not specified with ``--path``) the ``list`` command can be used.
+
+::
+
+    secrets list
+
+
 Store commands
 ~~~~~~~~~~~~~~
 
@@ -60,24 +73,6 @@ A store can be destroyed with ``destroy``.
 
     secrets destroy password
 
-list
-^^^^
-
-For list all the store within a path (the default if not specified with ``--path``) the ``list`` command can be used.
-
-::
-
-    secrets list
-
-show
-^^^^
-
-The entire content of a store can be seen using ``show``.
-
-::
-
-    secrets show password --key mykey
-
 key
 ^^^
 
@@ -96,17 +91,14 @@ Removes all the secrets from a store.
 
     secrets clear password --key mykey
 
-Secret commands
-~~~~~~~~~~~~~~~
+show
+^^^^
 
-add
-^^^
-
-A secret can be added to an existent store using ``add`` as follows:
+The entire content of a store can be seen using ``show``.
 
 ::
 
-    secrets add password --data Site="Megavideo" Account="me@gmail.com" Password="MyPassword" --key mykey
+    secrets show password --key mykey
 
 grep
 ^^^^
@@ -120,6 +112,18 @@ For search between the secrets' fields for a specific word (or regular expressio
 ::
 
     secrets grep password "^My.*word" --key mykey
+
+Secret commands
+~~~~~~~~~~~~~~~
+
+add
+^^^
+
+A secret can be added to an existent store using ``add`` as follows:
+
+::
+
+    secrets add password --data Site="Megavideo" Account="me@gmail.com" Password="MyPassword" --key mykey
 
 remove
 ^^^^^^
@@ -162,9 +166,20 @@ For more details about the commands, use ``help``:
 
         One of the following command must be specified:
 
-    COMMANDS
+    UTILITY COMMANDS
+
         help
             Shows this help message.
+
+    GLOBAL COMMANDS
+
+        list [--path <PATH>]
+            List the names of the stores found at the path specified
+            by --path (or at the default one if not specified).
+
+            e.g. secrets list
+
+    STORE COMMANDS
 
         create [<STORE_NAME>] [--fields FIELDS] [--path <PATH>] [--key <STORE_KEY>]
             Creates a new store at the given path using the given key.
@@ -185,17 +200,6 @@ For more details about the commands, use ``help``:
 
             e.g. secrets destroy password
 
-        list [--path <PATH>]
-            List the names of the stores found at the path specified
-            by --path (or at the default one if not specified).
-
-            e.g. secrets list
-
-        show [<STORE_NAME>] [--path <PATH>] [--key <STORE_KEY>] [--no-table]
-            Decrypts and shows the content of an entire store.
-
-            e.g. secrets show password --key mykey
-
         key [<STORE_NAME>] [<NEW_STORE_KEY>] [--path <PATH>] [--key <STORE_KEY>]
             Changes the key of the store from STORE_KEY to NEW_STORE_KEY.
 
@@ -205,12 +209,10 @@ For more details about the commands, use ``help``:
             Clears the content (all the secrets) of a store.
             The model is left unchanged.
 
-        add [<STORE_NAME>] [--data DATA] [--path <PATH>] [--key <STORE_KEY>]
-            Inserts a new secret into a store.
-            The DATA must be expressed as a key=value list where the key should
-            be a field of the store.
+        show [<STORE_NAME>] [--path <PATH>] [--key <STORE_KEY>] [--no-table]
+            Decrypts and shows the content of an entire store.
 
-            e.g. secrets add password --data Site="Megavideo" Account="me@gmail.com" Password="MyPassword" --key mykey
+            e.g. secrets show password --key mykey
 
         grep [<STORE_NAME>] [<SEARCH_PATTERN>] [--path <PATH>] [--key <STORE_KEY>] [--no-color] [--no-table]
             Performs a regular expression search between the data of the store.
@@ -219,6 +221,15 @@ For more details about the commands, use ``help``:
 
             e.g. secrets grep password MyPass --key mykey
             e.g. secrets grep password "^My.*word" --key mykey
+
+    SECRET COMMANDS
+
+        add [<STORE_NAME>] [--data DATA] [--path <PATH>] [--key <STORE_KEY>]
+            Inserts a new secret into a store.
+            The DATA must be expressed as a key=value list where the key should
+            be a field of the store.
+
+            e.g. secrets add password --data Site="Megavideo" Account="me@gmail.com" Password="MyPassword" --key mykey
 
         remove [<STORE_NAME>] [<SECRET_IDS>*] [--path <PATH>] [--key <STORE_KEY>]
             Removes the secret(s) with the given SECRET_IDS from the store.
@@ -232,6 +243,32 @@ For more details about the commands, use ``help``:
             The DATA must be expressed as a key=value list.
 
             e.g. secrets modify password 11 --data Password="MyNewPassword" --key mykey
+
+    GIT COMMANDS
+
+        push [--path <PATH>] [--message <COMMIT_MESSAGE>] [--remote <REMOTE_NAME>]
+            Commits and pushes to the remote git repository.
+            Actually performs "git add ." , "git commit -m 'COMMIT_MESSAGE'" and
+            "git push [REMOTE_NAME]" on the given path.
+            Note that the action is related to the whole repository,
+            not a particular store.
+
+            If the COMMIT_MESSAGE is not specified, a default commit message
+            will be created.
+            If the REMOTE_NAME is not specified, the default one
+            (if set, e.g. via --set-upstream) will be used.
+            The credentials might be required by the the invoked git push routine.
+
+            e.g. secrets push
+            e.g. secrets push --remote origin
+            e.g. secrets push --remote bitbucket --message "Added Google password"
+
+        pull [--remote <REMOTE_NAME>] [--path <PATH>]
+            Pull from the remote git branch.
+            Note that the action is related to the whole repository,
+            not a particular store.
+
+            e.g. secrets pull --remote origin
 
     GENERAL OPTIONS
         --verbose

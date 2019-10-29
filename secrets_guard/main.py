@@ -4,7 +4,7 @@ import os
 import sys
 import traceback
 
-from secrets_guard import vcs
+from secrets_guard import gitsync
 from secrets_guard.args import Args
 from secrets_guard.cli import Options, Commands, SecretAttributes
 from secrets_guard.conf import Conf, LoggingLevels
@@ -106,16 +106,29 @@ SECRET COMMANDS
                
 GIT COMMANDS
 
-    push <REMOTE> [--path <PATH>] [--message <COMMIT_MESSAGE>]
-        Commits and pushes to the remote git branch.
-        The commit message can be specified using --message.
+    push [--path <PATH>] [--message <COMMIT_MESSAGE>] [--remote <REMOTE_NAME>]
+        Commits and pushes to the remote git repository.
+        Actually performs "git add ." , "git commit -m 'COMMIT_MESSAGE'" and
+        "git push [REMOTE_NAME]" on the given path.
+        Note that the action is related to the whole repository, 
+        not a particular store.
+
+        If the COMMIT_MESSAGE is not specified, a default commit message 
+        will be created.
+        If the REMOTE_NAME is not specified, the default one 
+        (if set, e.g. via --set-upstream) will be used.
+        The credentials might be required by the the invoked git push routine.
         
-        e.g. secrets push origin --key mykey      
+        e.g. secrets push
+        e.g. secrets push --remote origin
+        e.g. secrets push --remote bitbucket --message "Added Google password"
           
-    pull <REMOTE> [--path <PATH>]
+    pull [--remote <REMOTE_NAME>] [--path <PATH>]
         Pull from the remote git branch.
-        
-        e.g. secrets pull origin --key mykey
+        Note that the action is related to the whole repository, 
+        not a particular store.
+
+        e.g. secrets pull --remote origin
 
 GENERAL OPTIONS
     --verbose
@@ -141,7 +154,8 @@ def init_logging(parsed_args):
 
     logging.basicConfig(level=Conf.LOGGING_LEVEL,
                         format="[%(levelname)s] %(asctime)s %(message)s",
-                        datefmt='%d/%m/%y %H:%M:%S')
+                        datefmt='%d/%m/%y %H:%M:%S',
+                        stream=sys.stdout)
 
     if not parsed_args.has_kwarg(Options.VERBOSE):
         logging.disable()
@@ -315,7 +329,7 @@ def obtain_store_path(parsed_args, ensure_existence=True):
     :param ensure_existence: whether abort if the path does not exist
     :return: the store path
     """
-    path = parsed_args.kwarg_param(Options.STORE_PATH, Conf.DEFAULT_PATH)
+    path = parsed_args.kwarg_param(Options.STORE_PATH, Conf.DEFAULT_SECRETS_PATH)
     if ensure_existence and not os.path.exists(path):
         abort("Error: path does not exist (%s)" % path)
     return path
@@ -453,29 +467,52 @@ def execute_show_store(parsed_args):
     )
 
 
-def execute_push_store(parsed_args):
+# def execute_git_init(parsed_args):
+#     store_path = obtain_store_path(parsed_args)
+#
+#     def do_init():
+#         logging.debug("Will in at %s", store_path)
+#         return gitsync.init(store_path)
+#
+#     attempt_execute_command(
+#         do_init,
+#         error_message="Error: cannot init"
+#     )
+
+
+def execute_git_push(parsed_args):
     store_path = obtain_store_path(parsed_args)
-    remote_branch = obtain_positional_argument(parsed_args, 0, "Remote branch name: ")
+    remote_branch = obtain_optional_argument_param(parsed_args, Options.BRANCH)
     commit_message = obtain_optional_argument_param(parsed_args, Options.MESSAGE)
 
-    def do_push_store():
+    def do_push():
         nonlocal commit_message
 
         logging.debug("Will push %s to branch %s", store_path, remote_branch)
 
         if not commit_message:
-            commit_message = "Committed on " + datetime.datetime.now().strftime("%H:%M:%S %Y/%m/%d")
+            commit_message = "Committed on " + datetime.datetime.now().strftime("%H:%M:%S %d/%m/%Y")
 
-        return vcs.push(store_path, remote_branch, commit_message)
+        return gitsync.push(store_path, commit_message, remote_branch)
 
     attempt_execute_command(
-        do_push_store,
+        do_push,
         error_message="Error: cannot push"
     )
 
 
-def execute_pull_store(parsed_args):
-    pass
+def execute_git_pull(parsed_args):
+    store_path = obtain_store_path(parsed_args)
+    remote_branch = obtain_optional_argument_param(parsed_args, Options.BRANCH)
+
+    def do_pull():
+        logging.debug("Will pull from branch %s to %s", store_path, remote_branch)
+        return gitsync.pull(store_path, remote_branch)
+
+    attempt_execute_command(
+        do_pull,
+        error_message="Error: cannot pull"
+    )
 
 
 def execute_change_store_key(parsed_args):
@@ -660,8 +697,9 @@ def execute_command(parsed_args):
 
     dispatcher = {
         Commands.HELP: execute_help,
-        Commands.PUSH: execute_push_store,
-        Commands.PULL: execute_pull_store,
+        # Commands.GIT_INIT: execute_git_init,
+        Commands.GIT_PUSH: execute_git_push,
+        Commands.GIT_PULL: execute_git_pull,
         Commands.CREATE_STORE: execute_create_store,
         Commands.DESTROY_STORE: execute_destroy_store,
         Commands.LIST_STORES: execute_list_stores,

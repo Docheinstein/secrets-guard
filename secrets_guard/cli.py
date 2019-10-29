@@ -7,8 +7,9 @@ class Commands:
     """
 
     HELP = "help"
-    PUSH = "push"
-    PULL = "pull"
+    GIT_INIT = "init"
+    GIT_PUSH = "push"
+    GIT_PULL = "pull"
     CREATE_STORE = "create"
     DESTROY_STORE = "destroy"
     LIST_STORES = "list"
@@ -31,6 +32,7 @@ class Options:
     STORE_PATH = "path"
     SECRET_DATA = "data"
 
+    BRANCH = "branch"
     MESSAGE = "message"
 
     VERBOSE = "verbose"
