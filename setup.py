@@ -1,6 +1,8 @@
 import os
 from setuptools import setup, find_packages
 
+from secrets_guard.conf import Conf
+
 
 def read(file_name):
     with open(os.path.join(os.path.dirname(__file__), file_name)) as f:
@@ -8,8 +10,8 @@ def read(file_name):
 
 
 setup(
-    name="secrets-guard",
-    version="0.8",
+    name=Conf.APP_NAME,
+    version=Conf.APP_VERSION,
 
     # Requires python3.5
     python_requires=">=3",
@@ -34,7 +36,7 @@ setup(
     test_suite="tests",
 
     # Dependencies
-    install_requires=['pycryptodome'],
+    install_requires=['pycryptodome', 'gitpython'],
 
     # Metadata
     author="Stefano Dottore",
