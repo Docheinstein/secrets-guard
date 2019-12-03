@@ -13,7 +13,7 @@ class LoggingLevels:
 
 class Conf:
     APP_NAME = "secrets-guard"
-    APP_VERSION = "0.10"
+    APP_VERSION = "0.11"
     LOGGING_LEVEL = LoggingLevels.DEBUG
     STORE_EXTENSION = ".sec"
     KEYRING_EXTENSION = ".skey"

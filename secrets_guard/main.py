@@ -10,8 +10,7 @@ from secrets_guard.cli import Options, Commands, SecretAttributes
 from secrets_guard.conf import Conf, LoggingLevels
 from secrets_guard.keyring import keyring_get_key, keyring_put_key, keyring_has_key, keyring_del_key
 from secrets_guard.store import Store, StoreField
-from secrets_guard.utils import keyval_list_to_dict, abort, terminate, is_empty_string, prompt, is_string, \
-    prompt_until_valid
+from secrets_guard.utils import keyval_list_to_dict, abort, terminate, is_empty_string, prompt, is_string
 
 HELP = """NAME 
     secrets - encrypt and decrypt private information (such as passwords)
@@ -235,7 +234,7 @@ def obtain_positional_argument(parsed_args, index, prompt_text, secure=False, do
 
         return parsed_args.args[index:index + count]
 
-    return prompt_until_valid(prompt_text, secure=secure, double_check=double_check)
+    return prompt(prompt_text, secure=secure, double_check=double_check, until_valid=True)
 
 
 def obtain_argument_params(parsed_args, argument, prompt_text, secure=False, double_check=False):
@@ -254,7 +253,7 @@ def obtain_argument_params(parsed_args, argument, prompt_text, secure=False, dou
     if params:
         return params
 
-    return prompt_until_valid(prompt_text, secure=secure, double_check=double_check)
+    return prompt(prompt_text, secure=secure, double_check=double_check, until_valid=True)
 
 
 def obtain_argument_param(parsed_args, argument, prompt_text, secure=False, double_check=False):
@@ -273,7 +272,7 @@ def obtain_argument_param(parsed_args, argument, prompt_text, secure=False, doub
     if param:
         return param
 
-    return prompt_until_valid(prompt_text, secure=secure, double_check=double_check)
+    return prompt(prompt_text, secure=secure, double_check=double_check, until_valid=True)
 
 
 def obtain_optional_argument_param(parsed_args, argument, default_value=None):
@@ -581,11 +580,12 @@ def execute_add_secret(parsed_args):
         if secret_data is None:
             secret = {}
             for f in store.fields:
-                secret[f.name] = prompt_until_valid(
+                secret[f.name] = prompt(
                     f.name + ": ", secure=f.hidden,
                     double_check=True,
-                    double_check_prompt_text=f.name + " again",
-                    double_check_failed_message="Double check failed, please insert the field again")
+                    double_check_prompt_text=f.name + " again: ",
+                    double_check_failed_message="Double check failed, please insert the field again",
+                    until_valid=f.mandatory)
         else:
             secret = keyval_list_to_dict(secret_data)
             # If there are already some fields, ask only the mandatory
@@ -599,11 +599,12 @@ def execute_add_secret(parsed_args):
                             has_mandatory = True
                             break
                     if not has_mandatory:
-                        secret[f.name] = prompt_until_valid(
+                        secret[f.name] = prompt(
                             f.name + ": ", secure=f.hidden,
                             double_check=True,
-                            double_check_prompt_text=f.name + " again",
-                            double_check_failed_message="Double check failed, please insert the field again")
+                            double_check_prompt_text=f.name + " again: ",
+                            double_check_failed_message="Double check failed, please insert the field again",
+                            until_valid=f.mandatory)
 
         if not store.add_secrets(secret):
             return False
@@ -695,11 +696,12 @@ def execute_modify_secret(parsed_args):
                 choice = int(input(": "))
 
             changed_field = store.fields[choice]
-            newval = prompt_until_valid(
+            newval = prompt(
                 "New value of '" + changed_field.name + "': ", secure=changed_field.hidden,
                 double_check=True,
                 double_check_prompt_text="New value of '" + changed_field.name + "' again: ",
-                double_check_failed_message="Double check failed, please insert the field again")
+                double_check_failed_message="Double check failed, please insert the field again",
+                until_valid=changed_field.mandatory)
 
             secret_mod[changed_field.name] = newval
         else:

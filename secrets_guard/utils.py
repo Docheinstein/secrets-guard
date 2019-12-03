@@ -9,6 +9,8 @@ from sys import exit
 
 from secrets_guard.consts import AnsiColor
 
+PROMPT_DOUBLE_CHECK_FAILED = -1
+
 
 def eprint(*args, **kwargs):
     """
@@ -231,11 +233,12 @@ def tabulate(headers, data):
     return out
 
 
-def prompt_until_valid(prompt_text,
-                       secure=False,
-                       double_check=False,
-                       double_check_prompt_text=None,
-                       double_check_failed_message=None):
+def prompt(prompt_text,
+           secure=False,
+           double_check=False,
+           double_check_prompt_text=None,
+           double_check_failed_message=None,
+           until_valid=False):
     """
     Asks for input, eventually hiding what's being written, until the input is valid.
     :param prompt_text: the text to show
@@ -244,18 +247,33 @@ def prompt_until_valid(prompt_text,
     :param double_check_prompt_text: the text to show for the double check.
                                      If not specified, the prompt_text is used instead
     :param double_check_failed_message: the text to show if the double check fails
+    :param until_valid: prompt again until a valid string is inserted (eventually double checking)
     :return: the (valid) text inserted by the user
     """
-    s = None
-    while not s:
-        s = prompt(prompt_text, secure,
-                   double_check, double_check_prompt_text)
-        if not s and double_check_failed_message:
-            print(double_check_failed_message)
-    return s
+
+    while True:
+        s = _prompt(prompt_text, secure, double_check, double_check_prompt_text)
+
+        # If s is valid, we are ok returning it anyway
+        if s and s != PROMPT_DOUBLE_CHECK_FAILED:
+            return s
+
+        # At this point s is either empty or the double check failed
+
+        if s == PROMPT_DOUBLE_CHECK_FAILED:
+            # Double check failed: never allow PROMPT_DOUBLE_CHECK_FAILED.
+            if double_check_failed_message:
+                print(double_check_failed_message)
+            # will re-prompt
+        else:
+            # The string is invalid: decide whether re-prompt or
+            # allow empty string depending on until_valid.
+            if not until_valid:
+                return s
+            # else: will re-prompt
 
 
-def prompt(prompt_text, secure=False, double_check=False, double_check_prompt_text=None):
+def _prompt(prompt_text, secure=False, double_check=False, double_check_prompt_text=None):
     """
     Asks for input, eventually hiding what's being written, and eventually doing a double check.
     :param prompt_text: the text to show
@@ -280,7 +298,7 @@ def prompt(prompt_text, secure=False, double_check=False, double_check_prompt_te
 
     s2 = getpass(double_check_prompt_text)
 
-    return s1 if s1 == s2 else None
+    return s1 if s1 == s2 else PROMPT_DOUBLE_CHECK_FAILED
 
 
 def insert_into_string(source, insert, pos):
