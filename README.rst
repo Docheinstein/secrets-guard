@@ -171,6 +171,9 @@ For more details about the commands, use ``help``:
         help
             Shows this help message.
 
+        version
+            Shows the version number.
+
     GLOBAL COMMANDS
 
         list [--path <PATH>]

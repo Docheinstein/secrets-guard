@@ -153,7 +153,10 @@ UTILITY COMMANDS
 
     help
         Shows this help message.
-        
+                
+    version
+        Shows the version number.
+
 GLOBAL COMMANDS
                         
     list [--path <PATH>]
