@@ -64,9 +64,17 @@ def push(local_path, commit_message, remote_branch=None):
     logging.debug("Adding . to stage")
     print_if_valid(repository.git.add("."))
 
-    logging.debug("Committing with message: %s", commit_message)
-    print_if_valid(repository.git.commit("-m", commit_message))
-    # repository.index.commit(commit_message)
+    # Before commit, check if commit is needed, otherwise
+    # an exception will be thrown
+
+    repo_status = repository.git.status("-s")
+    logging.debug("git status -s report is:\n%s", repo_status)
+    if repo_status:
+        logging.debug("Committing with message: %s", commit_message)
+        print_if_valid(repository.git.commit("-m", commit_message))
+        # repository.index.commit(commit_message)
+    else:
+        logging.debug("No commit is needed")
 
     logging.debug("Will push to branch %s", remote_branch)
 

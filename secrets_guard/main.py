@@ -370,7 +370,7 @@ def attempt_execute_command(command, error_message="Unexpected error occurred"):
     try:
         command_ok = command()
     except Exception as e:
-        logging.warning("Caught exception %s", e)
+        logging.warning("Caught exception: %s", e)
         logging.warning(traceback.format_exc())
 
     if not command_ok:
@@ -747,7 +747,8 @@ def execute_command(parsed_args):
     try:
         dispatcher[parsed_args.command](parsed_args)
     except KeyboardInterrupt:
-        pass
+        logging.debug("Interrupted by user")
+        exit(-1)
 
 
 def open_store(store, update_keyring=True):
