@@ -36,7 +36,7 @@ setup(
     test_suite="tests",
 
     # Dependencies
-    install_requires=['pycryptodome', 'gitpython'],
+    install_requires=['pycryptodomex', 'gitpython'],
 
     # Metadata
     author="Stefano Dottore",

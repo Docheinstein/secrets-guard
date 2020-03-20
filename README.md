@@ -12,7 +12,7 @@ It's similar the Linux tool `pass`, but uses AES instead of GPG and allows to cr
 ## REQUIREMENTS
 
 Requires at least Python 3.  
-Requires 'pycryptodome' library.
+Requires 'pycryptodomex' library.
 
 ## INSTALLATION
 

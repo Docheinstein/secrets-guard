@@ -17,7 +17,7 @@ REQUIREMENTS
 
 Requires at least Python 3.
 
-Requires 'pycryptodome' library.
+Requires 'pycryptodomex' library.
 
 INSTALLATION
 ------------

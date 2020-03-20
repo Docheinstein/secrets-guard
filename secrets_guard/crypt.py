@@ -2,9 +2,9 @@ import base64
 import hashlib
 import logging
 
-from Crypto import Random
-from Crypto.Cipher import AES
-from Crypto.Util.Padding import pad, unpad
+from Cryptodome import Random
+from Cryptodome.Cipher import AES
+from Cryptodome.Util.Padding import pad, unpad
 
 
 def aes_key(key):
