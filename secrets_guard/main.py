@@ -49,7 +49,7 @@ STORE COMMANDS
         The FIELDS must be expressed as a space separated list of field names.
         
         Furthermore some attributes can be expressed for the fields by appending
-        "+<attr_code_1><attr_code_2>..." after the field name.
+        "+<attr_1><attr_2>..." after the field name.
         
         The available attributes are
         1) h: hidden (the user input is not shown)
@@ -72,15 +72,17 @@ STORE COMMANDS
         Clears the content (all the secrets) of a store.
         The model is left unchanged.
         
-    show [<STORE_NAME>] [--path <PATH>] [--key <STORE_KEY>] [--no-table]
+    show [<STORE_NAME>] [--path <PATH>] [--key <STORE_KEY>] [--no-table] [--when]
         Decrypts and shows the content of an entire store.
-        
+        The --when parameter shows also temporal info (add/last modify date)
+
         e.g. secrets show password --key mykey
             
-    grep [<STORE_NAME>] [<SEARCH_PATTERN>] [--path <PATH>] [--key <STORE_KEY>] [--no-color] [--no-table]
+    grep [<STORE_NAME>] [<SEARCH_PATTERN>] [--path <PATH>] [--key <STORE_KEY>] [--no-color] [--no-table] [--when]
         Performs a regular expression search between the data of the store.
         The SEARCH_PATTERN can be any valid regular expression.
         The matches will be highlighted unless --no-color is specified.
+        The --when parameter shows also temporal info (add/last modify date)
         
         e.g. secrets grep password MyPass --key mykey
         e.g. secrets grep password "^My.*word" --key mykey
@@ -398,7 +400,9 @@ def execute_create_store(parsed_args):
         raw_store_fields = []
         f = None
         i = 1
-        print("\nInsert store fields with format <name>[+<properties>].\n(Leave empty for end the fields insertion).")
+        print("\nInsert store fields with format <name>[+<attr_1><attr_2>...].\n"
+              "Available attributes are m (mandatory) and h (hidden).\n"
+              "(Leave empty for terminate the fields insertion).")
         while not is_empty_string(f):
             f = input(str(i) + "° field: ")
             if not is_empty_string(f):
@@ -469,7 +473,8 @@ def execute_show_store(parsed_args):
     def do_show_store():
         store = Store(store_path, store_name, store_key)
         open_store(store, update_keyring=use_keyring)
-        return store.show(table=not parsed_args.has_kwarg(Options.NO_TABLE))
+        return store.show(table=not parsed_args.has_kwarg(Options.NO_TABLE),
+                          when=parsed_args.has_kwarg(Options.WHEN))
 
     attempt_execute_command(
         do_show_store,
@@ -626,7 +631,8 @@ def execute_grep_secret(parsed_args):
         open_store(store, update_keyring=use_keyring)
         return store.grep(grep_pattern,
                           colors=not parsed_args.has_kwarg(Options.NO_COLOR),
-                          table=not parsed_args.has_kwarg(Options.NO_TABLE))
+                          table=not parsed_args.has_kwarg(Options.NO_TABLE),
+                          when=parsed_args.has_kwarg(Options.WHEN))
 
     attempt_execute_command(
         do_grep_secret,

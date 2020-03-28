@@ -18,6 +18,7 @@ class Conf:
     STORE_EXTENSION = ".sec"
     KEYRING_EXTENSION = ".skey"
     DEFAULT_SECRETS_PATH = os.path.join(str(Path.home()), ".secrets")
+    DATETIME_FORMAT = "%d/%m/%Y %H:%M:%S"
 
 
 

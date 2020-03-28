@@ -40,6 +40,7 @@ class Options:
     NO_COLOR = "no-color"
     NO_TABLE = "no-table"
     NO_KEYRING = "no-keyring"
+    WHEN = "when"
 
 
 class SecretAttributes:

@@ -3,6 +3,9 @@ import json
 import logging
 import os
 import re
+from datetime import datetime
+
+from secrets_guard.conf import Conf
 from secrets_guard.crypt import aes_encrypt_file, aes_decrypt_file
 from secrets_guard.utils import tabulate_enum, abort, highlight, enumerate_data
 
@@ -31,6 +34,9 @@ from secrets_guard.utils import tabulate_enum, abort, highlight, enumerate_data
 # Each field of the model of the store is called StoreField
 # e.g. Name or Account or Password)
 class StoreField:
+
+    ADD_DATETIME = "Added"
+    LAST_MODIFY_DATETIME = "Modified"
 
     class Json:
         NAME = "name"
@@ -108,9 +114,10 @@ class Store:
         """
         return self._fields
 
-    def fieldsnames(self):
+    def fieldsnames(self, when=False):
         """
         Returns the store fields names.
+        :param when: add the temporal fields (creation/modification)
         :return: the store fields names
         """
 
@@ -120,6 +127,10 @@ class Store:
             # if f.hidden:
             #     name = "# " + name + " #"
             names.append(name)
+
+        if when:
+            names.append(StoreField.ADD_DATETIME)
+            names.append(StoreField.LAST_MODIFY_DATETIME)
 
         return names
 
@@ -164,7 +175,8 @@ class Store:
 
         for secret in secrets:
             safe_secret = {}
-            self._apply_secret_change(safe_secret, secret)
+            self._apply_secret_change(safe_secret, secret,
+                                      temporal_field=StoreField.ADD_DATETIME)
             logging.info("Adding secret: %s", safe_secret)
             self.secrets.append(safe_secret)
 
@@ -223,7 +235,8 @@ class Store:
         self._secrets = Store.sorted_secrets(self.secrets)
 
         secret = self.secrets[secret_id]
-        self._apply_secret_change(secret, secret_mod)
+        self._apply_secret_change(secret, secret_mod,
+                                  temporal_field=StoreField.LAST_MODIFY_DATETIME)
 
         return True
 
@@ -323,26 +336,28 @@ class Store:
 
         return write_ok and os.path.exists(self._fullpath)
 
-    def show(self, table=True):
+    def show(self, table=True, when=False):
         """
         Prints the data of the store as tabulated data.
         :param table: whether show the data within a table
+        :param when: whether show the creation/modification info
         :return: whether the store has been printed successfully
         """
         if table:
-            print(tabulate_enum(self.fieldsnames(), Store.sorted_secrets(self.secrets)))
+            print(tabulate_enum(self.fieldsnames(when), Store.sorted_secrets(self.secrets)))
         else:
-            print(Store.list_secrets(self.fieldsnames(), Store.sorted_secrets(self.secrets)))
+            print(Store.list_secrets(self.fieldsnames(when), Store.sorted_secrets(self.secrets)))
 
         return True
 
-    def grep(self, grep_pattern, colors=True, table=True):
+    def grep(self, grep_pattern, colors=True, table=True, when=False):
         """
         Performs a regular expression between each field of each secret and
         prints the matches a tabular data.
         :param grep_pattern: the search pattern as a valid regular expression
         :param colors: whether highlight the matches
         :param table: whether show the data within a table
+        :param when: whether show the creation/modification info
         :return: whether the secret has been grep-ed successfully
         """
 
@@ -375,18 +390,20 @@ class Store:
         logging.debug("There are %d matches", len(matches))
 
         if table:
-            print(tabulate_enum(self.fieldsnames(), matches))
+            print(tabulate_enum(self.fieldsnames(when), matches))
         else:
-            print(Store.list_secrets(self.fieldsnames(), matches))
+            print(Store.list_secrets(self.fieldsnames(when), matches))
 
         return True
 
-    def _apply_secret_change(self, secret, secret_mod):
+    def _apply_secret_change(self, secret, secret_mod, temporal_field=None):
         """
         For each known field of store_fields push the value from secret_mod
         to secret.
         :param secret: the secret
         :param secret_mod: the secret modification (may contain only some fields)
+        :param temporal_field: optionally set the field "temporal_field" equals
+                               to the current datetime (i.e. for add/modify tracking)
         """
         store_fields = self.fieldsnames()
 
@@ -396,6 +413,10 @@ class Store:
             for mod_field in secret_mod:
                 if store_field.lower() == mod_field.lower():
                     secret[store_field] = secret_mod[mod_field]
+
+        if temporal_field:
+            # Update the temporal field
+            secret[temporal_field] = datetime.now().strftime(Conf.DATETIME_FORMAT)
 
         logging.debug("Secret after mod: %s", secret)
 
