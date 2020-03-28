@@ -153,10 +153,10 @@ UTILITY COMMANDS
 
     help
         Shows this help message.
-                
+        
     version
         Shows the version number.
-
+        
 GLOBAL COMMANDS
                         
     list [--path <PATH>]
@@ -172,7 +172,7 @@ STORE COMMANDS
         The FIELDS must be expressed as a space separated list of field names.
         
         Furthermore some attributes can be expressed for the fields by appending
-        "+<attr_code_1><attr_code_2>..." after the field name.
+        "+<attr_1><attr_2>..." after the field name.
         
         The available attributes are
         1) h: hidden (the user input is not shown)
@@ -195,15 +195,17 @@ STORE COMMANDS
         Clears the content (all the secrets) of a store.
         The model is left unchanged.
         
-    show [<STORE_NAME>] [--path <PATH>] [--key <STORE_KEY>] [--no-table]
+    show [<STORE_NAME>] [--path <PATH>] [--key <STORE_KEY>] [--no-table] [--when]
         Decrypts and shows the content of an entire store.
-        
+        The --when parameter shows also temporal info (add/last modify date)
+
         e.g. secrets show password --key mykey
             
-    grep [<STORE_NAME>] [<SEARCH_PATTERN>] [--path <PATH>] [--key <STORE_KEY>] [--no-color] [--no-table]
+    grep [<STORE_NAME>] [<SEARCH_PATTERN>] [--path <PATH>] [--key <STORE_KEY>] [--no-color] [--no-table] [--when]
         Performs a regular expression search between the data of the store.
         The SEARCH_PATTERN can be any valid regular expression.
         The matches will be highlighted unless --no-color is specified.
+        The --when parameter shows also temporal info (add/last modify date)
         
         e.g. secrets grep password MyPass --key mykey
         e.g. secrets grep password "^My.*word" --key mykey
@@ -229,7 +231,7 @@ SECRET COMMANDS
         The DATA must be expressed as a key=value list.
     
         e.g. secrets modify password 11 --data Password="MyNewPassword" --key mykey
-
+               
 GIT COMMANDS
 
     push [--path <PATH>] [--message <COMMIT_MESSAGE>] [--remote <REMOTE_NAME>]
