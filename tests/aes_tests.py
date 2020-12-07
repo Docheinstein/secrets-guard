@@ -1,13 +1,16 @@
 import random
+import string
 import tempfile
 import unittest
 
-from Crypto import Random
-from Crypto.Cipher import AES
+from Cryptodome import Random
+from Cryptodome.Cipher import AES
 
 from secrets_guard.crypt import aes_encrypt_file, aes_decrypt_file, aes_encrypt, aes_decrypt
-from secrets_guard.utils import random_string
 
+
+def random_string(length=10, alphabet=string.ascii_lowercase):
+    return ''.join(random.choice(alphabet) for _ in range(length))
 
 class AesTests(unittest.TestCase):
 

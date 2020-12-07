@@ -1,7 +1,7 @@
 import os
 from setuptools import setup, find_packages
 
-from secrets_guard.conf import Conf
+from secrets_guard import APP_NAME, APP_VERSION
 
 
 def read(file_name):
@@ -10,8 +10,8 @@ def read(file_name):
 
 
 setup(
-    name=Conf.APP_NAME,
-    version=Conf.APP_VERSION,
+    name=APP_NAME,
+    version=APP_VERSION,
 
     # Requires python3.5
     python_requires=">=3",

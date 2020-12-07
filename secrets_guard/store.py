@@ -4,8 +4,9 @@ import logging
 import os
 import re
 from datetime import datetime
+from pathlib import Path
 
-from secrets_guard.conf import Conf
+from secrets_guard import STORE_EXTENSION
 from secrets_guard.crypt import aes_encrypt_file, aes_decrypt_file
 from secrets_guard.utils import tabulate_enum, abort, highlight, enumerate_data
 
@@ -73,19 +74,20 @@ class Store:
         MODEL = "model"
         DATA = "data"
 
-    def __init__(self, path, name, key=None):
-        self._path = path
-        self._name = name
+    def __init__(self, stores_path, store_name, key=None):
+        self._path = Path(stores_path, store_name + STORE_EXTENSION)
+        self._plain_key = key if isinstance(key, str) else None
+        self._hashed_key = key if isinstance(key, bytes) else None
 
-        self._key = key
-
-        self._fullpath = os.path.join(path, name)
         self._fields = []
         self._secrets = []
+        
+        logging.debug(f"Store initialized for path: {self._path}")
+        logging.debug(f"Key type: {'plain' if self._plain_key else ('hashed' if self._hashed_key else 'none')}")
 
     @property
     def name(self):
-        return self._name
+        return self._path.stem
 
     @property
     def path(self):
@@ -93,18 +95,7 @@ class Store:
 
     @property
     def key(self):
-        return self._key
-
-    def has_plain_key(self):
-        """
-        Returns whether the key in use is plaintext or already hashed.
-        :return: whether the used key store is plaintext
-        """
-        return isinstance(self._key, str)
-
-    @property
-    def fullpath(self):
-        return self._fullpath
+        return self._plain_key or self._hashed_key
 
     @property
     def fields(self):
@@ -121,18 +112,10 @@ class Store:
         :return: the store fields names
         """
 
-        names = []
-        for f in self.fields:
-            name = f.name
-            # if f.hidden:
-            #     name = "# " + name + " #"
-            names.append(name)
-
+        ret = [f.name for f in self.fields]
         if when:
-            names.append(StoreField.ADD_DATETIME)
-            names.append(StoreField.LAST_MODIFY_DATETIME)
-
-        return names
+            ret += [StoreField.ADD_DATETIME, StoreField.LAST_MODIFY_DATETIME]
+        return ret
 
     def add_fields(self, *fields):
         """
@@ -140,9 +123,7 @@ class Store:
         :param fields: the fields to add
         """
 
-        for f in fields:
-            self.fields.append(f)
-
+        self._fields += fields
         return True
 
     @property
@@ -162,7 +143,7 @@ class Store:
         :param index: the secret index
         :return: the secret with the given index or None if it does not exist
         """
-        ss = Store.sorted_secrets(self.secrets)
+        ss = Store.sorted_secrets(self._secrets)
         if index < len(ss):
             return ss[index]
         return None
@@ -177,8 +158,8 @@ class Store:
             safe_secret = {}
             self._apply_secret_change(safe_secret, secret,
                                       temporal_field=StoreField.ADD_DATETIME)
-            logging.info("Adding secret: %s", safe_secret)
-            self.secrets.append(safe_secret)
+            logging.info(f"Adding secret: {safe_secret}")
+            self._secrets.append(safe_secret)
 
         return True
 
@@ -189,25 +170,25 @@ class Store:
         :return whether the secret has been removed
         """
 
-        logging.debug("Attempting secrets removal %s", secrets_ids)
+        logging.debug(f"Attempting secrets removal {secrets_ids}")
 
         # Sort now since we must ensure that the user provided ID
         # matches the index of the secrets.
-        self._secrets = Store.sorted_secrets(self.secrets)
+        self._secrets = Store.sorted_secrets(self._secrets)
 
         at_least_one_removed = False
 
         for secret_id in sorted(secrets_ids, reverse=True):
 
-            logging.debug("Attempting to remove %s", secret_id)
+            logging.debug(f"Attempting to remove {secret_id}")
 
-            if secret_id >= len(self.secrets):
+            if secret_id >= len(self._secrets):
                 logging.warning("Invalid secret id; out of bound")
                 continue
 
-            logging.info("Removing secret: %s", self.secrets[secret_id])
+            logging.info(f"Removing secret: {self._secrets[secret_id]}")
 
-            del self.secrets[secret_id]
+            del self._secrets[secret_id]
             at_least_one_removed = True
 
         return at_least_one_removed
@@ -226,15 +207,15 @@ class Store:
         :return whether the secret has been modified
         """
 
-        if not secret_id < len(self.secrets):
+        if not secret_id < len(self._secrets):
             logging.error("Invalid secret id; out of bound")
             return False
 
         # Sort now since we must ensure that the user provided ID
         # matches the index of the secrets.
-        self._secrets = Store.sorted_secrets(self.secrets)
+        self._secrets = Store.sorted_secrets(self._secrets)
 
-        secret = self.secrets[secret_id]
+        secret = self._secrets[secret_id]
         self._apply_secret_change(secret, secret_mod,
                                   temporal_field=StoreField.LAST_MODIFY_DATETIME)
 
@@ -254,13 +235,13 @@ class Store:
         Destroys the store file associated with this store and free this store.
         :return: whether the store has been destroyed successfully.
         """
-        logging.info("Destroying store at path '%s'", self._fullpath)
+        logging.info(f"Destroying store at path '{self._path}'")
 
-        if not os.path.exists(self._fullpath):
+        if not self._path.exists():
             logging.warning("Nothing to destroy, store does not exists")
             return False
 
-        os.remove(self._fullpath)
+        self._path.unlink()
 
         self._fields = []
         self._secrets = []
@@ -275,23 +256,20 @@ class Store:
         """
 
         def do_store_open():
-            logging.info("Opening store file at: %s", self._fullpath)
-            logging.debug("Using key '%s' ; plainkey? %s", self._key, self.has_plain_key())
-
-            if not os.path.exists(self._fullpath):
+            logging.info(f"Opening store file at: {self._path}")
+            if not self._path.exists():
                 logging.error("Path does not exist")
                 return None
 
-            store_content = aes_decrypt_file(self._fullpath, self._key,
-                                             is_plain_key=self.has_plain_key())
+            store_content = aes_decrypt_file(self._path, self.key)
 
             if not store_content:
                 return None
 
-            logging.debug("Store opened; content is: \n%s", store_content)
+            logging.debug(f"Store opened; content is: \n{store_content}")
             try:
                 store_json = json.loads(store_content)
-                logging.debug("Store parsed content is: %s", store_json)
+                logging.debug(f"Store parsed content is: {store_json}")
                 if not Store.is_valid_store_json(store_json):
                     logging.error("Invalid store content")
                     return None
@@ -304,7 +282,7 @@ class Store:
         jstore = do_store_open()
 
         if abort_on_fail and not jstore:
-            abort("Error: unable to open store '%s'" % self._name)
+            abort(f"Error: unable to open store '{self.name}'")
 
         # Parse the content
         self._parse_model(jstore)
@@ -317,24 +295,24 @@ class Store:
         :return: whether the store has been written successfully
         """
 
-        logging.info("Writing store file at: %s", self._fullpath)
+        logging.info(f"Writing store file at: {self._path}")
 
-        if not os.path.exists(self._path):
-            logging.debug("Creating path %s since it does not exists", self._path)
+        if not self._path.exists():
+            logging.debug(f"Creating store at {self._path} since it does not exists")
             try:
-                os.makedirs(self._path)
-            except OSError:
-                logging.warning("Exception occurred, cannot create directory")
+                self._path.parent.mkdir(parents=True, exist_ok=True)
+            except OSError as e:
+                logging.warning(f"Exception occurred, cannot create directory: {e}")
                 return False
 
-        logging.debug("Actually flushing store %s, \nModel: %s \nSecrets: %s",
-                      self._fullpath, self.fieldsnames(), self.secrets)
+        logging.debug(f"Actually flushing store: {self._path}\n"
+                      f"Model: {self.fieldsnames()} \n"
+                      f"Secrets: {self._secrets}")
 
-        write_ok = aes_encrypt_file(self._fullpath, self._key,
-                                    json.dumps(self.to_model()),
-                                    is_plain_key=self.has_plain_key())
+        write_ok = aes_encrypt_file(self._path, self.key,
+                                    json.dumps(self.to_model()))
 
-        return write_ok and os.path.exists(self._fullpath)
+        return write_ok and self._path.exists()
 
     def show(self, table=True, when=False):
         """
@@ -343,10 +321,14 @@ class Store:
         :param when: whether show the creation/modification info
         :return: whether the store has been printed successfully
         """
+        logging.debug("Showing store content...")
+
         if table:
-            print(tabulate_enum(self.fieldsnames(when), Store.sorted_secrets(self.secrets)))
+            print(tabulate_enum(self.fieldsnames(when),
+                                Store.sorted_secrets(self._secrets)))
         else:
-            print(Store.list_secrets(self.fieldsnames(when), Store.sorted_secrets(self.secrets)))
+            print(Store.list_secrets(self.fieldsnames(when),
+                                     Store.sorted_secrets(self._secrets)))
 
         return True
 
@@ -362,7 +344,7 @@ class Store:
         """
 
         matches = []
-        for i, secret in enumerate(Store.sorted_secrets(self.secrets)):
+        for i, secret in enumerate(Store.sorted_secrets(self._secrets)):
             secretmatch = None
             for field in secret:
                 # logging.debug("Comparing %s against %s", field, grep_pattern)
@@ -371,7 +353,7 @@ class Store:
 
                 for re_match in re_matches:
                     startpos, endpos = re_match.span()
-                    logging.debug("Found re match in: %s ", secret[field])
+                    logging.debug(f"Found re match in: {secret[field]}")
 
                     if colors:
                         # Do a copy, leave 'secret' as it is
@@ -387,7 +369,7 @@ class Store:
                 secretmatch["ID"] = i
                 matches.append(secretmatch)
 
-        logging.debug("There are %d matches", len(matches))
+        logging.debug(f"There are {len(matches)} matches")
 
         if table:
             print(tabulate_enum(self.fieldsnames(when), matches))
@@ -407,7 +389,9 @@ class Store:
         """
         store_fields = self.fieldsnames()
 
-        logging.debug("Applying secret mod.\nCurrent: %s\nMod: %s", secret, secret_mod)
+        logging.debug("Applying secret mod.\n"
+                      f"Old: {secret}\n"
+                      f"New: {secret_mod}")
 
         for store_field in store_fields:
             for mod_field in secret_mod:
@@ -416,9 +400,9 @@ class Store:
 
         if temporal_field:
             # Update the temporal field
-            secret[temporal_field] = datetime.now().strftime(Conf.DATETIME_FORMAT)
+            secret[temporal_field] = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
 
-        logging.debug("Secret after mod: %s", secret)
+        logging.debug(f"Secret after mod: {secret}")
 
     def _parse_model(self, store_model):
         """
@@ -427,7 +411,7 @@ class Store:
         :param store_model: the dictionary of the store as json
         """
 
-        logging.debug("Parsing store model %s", store_model)
+        logging.debug(f"Parsing store model {store_model}")
 
         if not Store.is_valid_store_json(store_model):
             logging.warning("Invalid store json")
@@ -443,25 +427,15 @@ class Store:
         """
         return {
             Store.Json.MODEL: [f.to_model() for f in self.fields],
-            Store.Json.DATA: self.secrets
+            Store.Json.DATA: self._secrets
         }
 
     def __str__(self):
-        s = "Store path: " + self._fullpath + "\n"
-
-        s += "Fields: "
-
-        for field in self.fields:
-            s += field
-
-        s += "\n"
-
-        s += "Secrets: "
-
-        for secret in self.secrets:
-            s += secret
-
-        return s
+        return f"""\
+Store path: {self._path}
+Fields: {self.fields}
+Secrets: {self._secrets}\
+"""
 
     @staticmethod
     def sorted_secrets(secrets):

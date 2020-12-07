@@ -1,13 +1,9 @@
 import logging
-import random
 import re
-import string
 import sys
 from functools import reduce
 from getpass import getpass
 from sys import exit
-
-from secrets_guard.consts import AnsiColor
 
 PROMPT_DOUBLE_CHECK_FAILED = -1
 
@@ -37,66 +33,8 @@ def abort(message, exit_code=-1):
     :param message: the message to print to stderr before exit
     :param exit_code: the exit code
     """
-    logging.error(message)
     eprint(message)
     exit(exit_code)
-
-
-def is_string(s):
-    """
-    Returns whether the object is a string.
-    :param s: the object
-    :return: whether is a string
-    """
-    return type(s) is str
-
-
-def is_list(l):
-    """
-    Returns whether the object is a list.
-    :param l: the object
-    :return: whether is a list
-    """
-    return isinstance(l, list)
-
-
-def is_empty_string(s):
-    """
-    Returns whether the given string is empty
-    :param s: the string
-    :return: whether the string is empty
-    """
-    return s == ""
-
-
-def list_to_str(l, sep=", "):
-    """
-    Joins the elements of the list using the given separator.
-    :param l: the list
-    :param sep: the separator to use for join elements
-    :return: the joined string
-    """
-    if l is None:
-        return ""
-    return sep.join(l)
-
-
-def dict_of_lists_to_str(d, sep=": "):
-    """
-    Returns a string representation of a dictionary of lists.
-    :param d: the dictionary
-    :param sep: the separator
-    :return: the string representation
-    """
-    if d is None:
-        return "<none>"
-    s = ""
-    for k in d:
-        s += k
-        if len(d[k]) > 0:
-            s += sep + list_to_str(d[k]) + " | "
-        s += "; "
-    return s
 
 
 def keyval_list_to_dict(l):
@@ -112,17 +50,6 @@ def keyval_list_to_dict(l):
             return None
         d[keyval[0]] = keyval[1]
     return d
-
-
-def random_string(length=10, alphabet=string.ascii_lowercase):
-    """
-    Generate a random string of the given length.
-    :param length: the length of the random string to generate
-    :param alphabet: a string containing the alphabet to use for the generation.
-                     Default is string.ascii_lowercase
-    :return: the randomly generated string
-    """
-    return ''.join(random.choice(alphabet) for _ in range(length))
 
 
 def enumerate_data(headers, data, enum_field_name="ID"):
@@ -191,13 +118,17 @@ def tabulate(headers, data):
                 m = max(m, escaped_text_lenth(str(d[h])))
         max_lengths[h] = m
 
-    def separator_row(newline=True):
-        s = ""
-        for hh in headers:
-            s += "+" + ("-" * (max_lengths[hh] + PADDING))
-        s += "+"
+    def separator_row(first=False, last=False):
+        s = "┌" if first else ("└" if last else "├")
 
-        if newline:
+        for hh_i, hh in enumerate(headers):
+            s += ("─" * (max_lengths[hh] + PADDING))
+            if hh_i < len(headers) - 1:
+                 s += "┬" if first else ("┴" if last else "┼")
+
+        s += "┐" if first else ("┘" if last else "┤")
+
+        if not last:
             s += "\n"
 
         return s
@@ -210,12 +141,12 @@ def tabulate(headers, data):
         return text.ljust(fixed_length + (len(text) - escaped_text_lenth(text)))
 
     # Row
-    out += separator_row()
+    out += separator_row(first=True)
 
     # Headers
     for h in headers:
-        out += "|" + data_cell(lambda: data_cell_filler(h, max_lengths[h]))
-    out += "|\n"
+        out += "│" + data_cell(lambda: data_cell_filler(h, max_lengths[h]))
+    out += "│\n"
 
     # Row
     out += separator_row()
@@ -223,12 +154,13 @@ def tabulate(headers, data):
     # Data
     for d in data:
         for dh in headers:
-            out += "|" + data_cell(
-                lambda: data_cell_filler((str(d[dh]) if dh in d else " "), max_lengths[dh]))
-        out += "|\n"
+            out += "│" + data_cell(
+                lambda: data_cell_filler((str(d[dh]) if dh in d else " "), max_lengths[dh])
+            )
+        out += "│\n"
 
     # Row
-    out += separator_row(newline=False)
+    out += separator_row(last=True)
 
     return out
 
@@ -301,18 +233,13 @@ def _prompt(prompt_text, secure=False, double_check=False, double_check_prompt_t
     return s1 if s1 == s2 else PROMPT_DOUBLE_CHECK_FAILED
 
 
-def insert_into_string(source, insert, pos):
-    """
-    Inserts a string into another string and returns the new string
-    :param source: the source string
-    :param insert: the string to insert
-    :param pos: the position the string will be inserted to
-    :return: the composed string
-    """
-    return source[:pos] + insert + source[pos:]
+RESET = "\33[0m"
+RED = "\33[31m"
+# GREEN = "\33[32m"
+# YELLOW = "\33[33m"
+# BLUE = "\33[34m"
 
-
-def highlight(text, startpos, endpos, color=AnsiColor.RED):
+def highlight(text, startpos, endpos, color=RED):
     """
     Highlights the text by insert the given ANSi color (default: red).
     :param text: the text to highlight
@@ -322,10 +249,13 @@ def highlight(text, startpos, endpos, color=AnsiColor.RED):
     :return: the highlighted text
     """
 
+    def insert_into_string(source, insert, pos):
+        return source[:pos] + insert + source[pos:]
+
     highlighted_text = text
 
     logging.debug("Highlighting %s from %d to %d", text, startpos, endpos)
-    highlighted_text = insert_into_string(highlighted_text, AnsiColor.RESET, endpos)
+    highlighted_text = insert_into_string(highlighted_text, RESET, endpos)
     highlighted_text = insert_into_string(highlighted_text, color, startpos)
 
     return highlighted_text

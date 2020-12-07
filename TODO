@@ -2,3 +2,6 @@
 2) Implement store meta details (creation date, insertion date, last edit date)
 3) Add a command for modify the store model (add/remove fields)
 666) Implemented AES from scratch just for fun and for remove a dependency
+4) Remove os.path.join
+5) Use f-string
+6) argparse

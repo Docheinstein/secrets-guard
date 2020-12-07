@@ -6,9 +6,6 @@ class Commands:
     Secrets Guard commands.
     """
 
-    HELP = "help"
-    VERSION = "version"
-    GIT_INIT = "init"
     GIT_PUSH = "push"
     GIT_PULL = "pull"
     CREATE_STORE = "create"
@@ -33,8 +30,10 @@ class Options:
     STORE_PATH = "path"
     SECRET_DATA = "data"
 
-    BRANCH = "branch"
-    MESSAGE = "message"
+    GIT_MESSAGE = "message"
+
+    HELP = "help"
+    VERSION = "version"
 
     VERBOSE = "verbose"
     NO_COLOR = "no-color"
