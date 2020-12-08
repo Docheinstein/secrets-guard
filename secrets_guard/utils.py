@@ -43,12 +43,12 @@ def keyval_list_to_dict(l):
     :param l: the list
     :return: the dictionary
     """
+    stripped = lambda s: s.strip('"').strip("'")
     d = {}
     for e in l:
         keyval = e.split("=", 2)
-        if len(keyval) != 2:
-            return None
-        d[keyval[0]] = keyval[1]
+        if len(keyval) == 2:
+            d[stripped(keyval[0])] = stripped(keyval[1])
     return d
 
 

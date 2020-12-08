@@ -12,7 +12,8 @@ from secrets_guard.keyring import keyring_get_key, keyring_put_key, keyring_has_
 from secrets_guard.store import Store, StoreField
 from secrets_guard.utils import keyval_list_to_dict, abort, terminate, prompt
 
-HELP = """NAME 
+HELP = """\
+NAME 
     secrets - encrypt and decrypt private information (such as passwords)
 
 SYNOPSIS
@@ -36,7 +37,7 @@ GLOBAL COMMANDS
 STORE COMMANDS
     create [<STORE_NAME>] [--fields FIELDS] [--path <PATH>] [--key <STORE_KEY>]
         Creates a new store at the given path using the given key.
-        The FIELDS must be expressed as a space separated list of field names.
+        The FIELDS must be expressed as a comma separated list of field names.
         
         Furthermore some attributes can be expressed for the fields by appending
         "+<attr_1><attr_2>..." after the field name.
@@ -45,8 +46,8 @@ STORE COMMANDS
         1) h: hidden (the user input is not shown)
         2) m: mandatory (the field must contain a non empty string)
         
-        e.g. secrets create password --fields Site Account Password Other --key mykey
-        e.g. secrets create password --fields Site+m Account+m Password+mh Other --mykey
+        e.g. secrets create password --fields Site,Account,Password,Other
+        e.g. secrets create password --fields Site+m,Account+m,Password+mh,Other
         
     destroy [<STORE_NAME>] [--path <PATH>]
         Destroys the store at the given path.
@@ -56,50 +57,52 @@ STORE COMMANDS
     key [<STORE_NAME>] [<NEW_STORE_KEY>] [--path <PATH>] [--key <STORE_KEY>]
         Changes the key of the store from STORE_KEY to NEW_STORE_KEY.
         
-        e.g. secrets key newkey --key currentkey
+        e.g. secrets key newkey
         
     clear [<STORE_NAME>] [--path <PATH>] [--key <STORE_KEY>]
         Clears the content (all the secrets) of a store.
         The model is left unchanged.
         
-    show [<STORE_NAME>] [--path <PATH>] [--key <STORE_KEY>] [--no-table] [--when]
+    show [<STORE_NAME>] [--no-table] [--when] [--path <PATH>] [--key <STORE_KEY>]
         Decrypts and shows the content of an entire store.
         The --when parameter shows also temporal info (add/last modify date)
 
-        e.g. secrets show password --key mykey
+        e.g. secrets show password
             
-    grep [<STORE_NAME>] [<SEARCH_PATTERN>] [--path <PATH>] [--key <STORE_KEY>] [--no-color] [--no-table] [--when]
+    grep [<STORE_NAME>] [<SEARCH_PATTERN>] [--fields FIELDS] [--when]  [--no-color] [--no-table] [--path <PATH>] [--key <STORE_KEY>]
         Performs a regular expression search between the data of the store.
         The SEARCH_PATTERN can be any valid regular expression.
         The matches will be highlighted unless --no-color is specified.
         The --when parameter shows also temporal info (add/last modify date)
-        
-        e.g. secrets grep password MyPass --key mykey
-        e.g. secrets grep password "^My.*word" --key mykey
+        If FIELDS is given, it must be expressed as a comma separated list of field names.
+
+        e.g. secrets grep password MyPass
+        e.g. secrets grep password "^My.*word" --fields Name,Other
         
 SECRET COMMANDS
     add [<STORE_NAME>] [--data DATA] [--path <PATH>] [--key <STORE_KEY>]
         Inserts a new secret into a store.
-        The DATA must be expressed as a key=value list where the key should
-        be a field of the store.
+        The DATA must be expressed as a key=value comma separated list where the 
+        key should be a field of the store.
         
-        e.g. secrets add password --data Site="Megavideo" Account="me@gmail.com" Password="MyPassword" --key mykey
+        e.g. secrets add password --data Site="Megavideo",Account="me@gmail.com",Password="MyPassword" 
 
     remove [<STORE_NAME>] [<SECRET_IDS>*] [--path <PATH>] [--key <STORE_KEY>]
         Removes the secret(s) with the given SECRET_IDS from the store.
-        The SECRET_IDS should be retrieved using the secrets grep command.
+        The SECRET_IDS should be a comma separated list of IDs retrieved 
+        using the secrets grep or the show command.
         
         e.g. secrets remove password 12
-        e.g. secrets remove password 12 14 15 7 11
+        e.g. secrets remove password 12,14,15,7 11
     
     modify [<STORE_NAME>] [<SECRET_ID>] [--data DATA] [--path <PATH>] [--key <STORE_KEY>]
         Modifies the secret with the given SECRET_ID using the given DATA.
         The DATA must be expressed as a key=value list.
     
-        e.g. secrets modify password 11 --data Password="MyNewPassword" --key mykey
+        e.g. secrets modify password 11 --data Password="MyNewPassword"
                
 GIT COMMANDS
-    push [--path <PATH>] [--message <COMMIT_MESSAGE>]
+    push [--message <COMMIT_MESSAGE>] [--path <PATH>] 
         Commits and pushes to the remote git repository.
         Actually performs "git add ." , "git commit -m 'COMMIT_MESSAGE'" and
         "git push" on the given path.
@@ -508,42 +511,37 @@ def execute_add_secret(positionals, options):
     stores_path, store_name, store_key, use_keyring = \
         obtain_commons(positionals, options)
 
-    # Secret data
-
     secret_data = options.get(Options.SECRET_DATA)
 
     def do_add_secret():
         store = Store(stores_path, store_name, store_key)
         open_store(store, update_keyring=use_keyring)
 
-        if secret_data is None:
-            secret = {}
-            for f in store.fields:
-                secret[f.name] = prompt(
-                    f.name + ": ", secure=f.hidden,
-                    double_check=True,
-                    double_check_prompt_text=f.name + " again: ",
-                    double_check_failed_message="Double check failed, please insert the field again",
-                    until_valid=f.mandatory)
-        else:
-            secret = keyval_list_to_dict(secret_data)
+        if secret_data:
+            secret = keyval_list_to_dict(secret_data.split(","))
+            secret_fields = [k.lower() for k in secret.keys()]
+
             # If there are already some fields, ask only the mandatory
             # (since this is probably non interactive mode and we won't
             # block the execution)
-            for f in store.fields:
-                if f.mandatory:
-                    has_mandatory = False
-                    for secfield in secret:
-                        if f.name.lower() == secfield.lower():
-                            has_mandatory = True
-                            break
-                    if not has_mandatory:
-                        secret[f.name] = prompt(
-                            f.name + ": ", secure=f.hidden,
-                            double_check=True,
-                            double_check_prompt_text=f.name + " again: ",
-                            double_check_failed_message="Double check failed, please insert the field again",
-                            until_valid=f.mandatory)
+            missing_fields = [f for f in store.fields
+                              if f.mandatory and f.name.lower() not in secret_fields]
+        else:
+            secret = {}
+
+            # Ask every field
+            missing_fields = [f for f in store.fields]
+
+        logging.debug(f"Missing fields to ask: {[f.name for f in missing_fields]}")
+
+        for f in missing_fields:
+            secret[f.name] = prompt(
+                f.name + ": ",
+                secure=f.hidden,
+                double_check=True,
+                double_check_prompt_text=f.name + " again: ",
+                double_check_failed_message="Double check failed, please insert the field again",
+                until_valid=f.mandatory)
 
         if not store.add_secrets(secret):
             return False
@@ -559,6 +557,7 @@ def execute_add_secret(positionals, options):
 def execute_grep_secret(positionals, options):
     stores_path, store_name, store_key, use_keyring = \
         obtain_commons(positionals, options)
+
     grep_pattern = get_positional_or_prompt(positionals, 1, "Search pattern: ")
 
     def do_grep_secret():
@@ -620,7 +619,7 @@ def execute_modify_secret(positionals, options):
             if not secret:
                 abort("Error: invalid secret ID; index out of bound")
 
-            logging.debug(f"Will modify secret {secret}", )
+            logging.debug(f"Will modify secret {secret}")
 
             print("Which field to modify?")
             choice = len(store.fields)
@@ -640,7 +639,8 @@ def execute_modify_secret(positionals, options):
 
             changed_field = store.fields[choice]
             newval = prompt(
-                "New value of '" + changed_field.name + "': ", secure=changed_field.hidden,
+                "New value of '" + changed_field.name + "': ",
+                secure=changed_field.hidden,
                 double_check=True,
                 double_check_prompt_text="New value of '" + changed_field.name + "' again: ",
                 double_check_failed_message="Double check failed, please insert the field again",
@@ -648,7 +648,7 @@ def execute_modify_secret(positionals, options):
 
             secret_mod[changed_field.name] = newval
         else:
-            secret_mod = keyval_list_to_dict(secret_data)
+            secret_mod = keyval_list_to_dict(secret_data.split(","))
 
         if not store.modify_secret(secret_id, secret_mod):
             return False
@@ -735,7 +735,6 @@ def main():
                         dest=Options.GIT_MESSAGE)
 
     parser.add_argument("--data",
-                        nargs="*",
                         dest=Options.SECRET_DATA)
 
 
