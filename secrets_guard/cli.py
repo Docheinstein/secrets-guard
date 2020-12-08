@@ -43,6 +43,11 @@ class Options:
     SORT = "sort"
     RSORT = "rsort"
 
+    PULL = "pull"
+    PUSH = "push"
+    SYNC = "sync"
+
+
 
 class SecretAttributes:
     """

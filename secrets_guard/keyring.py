@@ -38,8 +38,9 @@ def keyring_has_key(store_name):
     :param store_name: the store name
     :return: whether the key exists
     """
-    return _keyring_path(store_name).is_file()
-
+    found = _keyring_path(store_name).is_file()
+    logging.debug(f"Keyring found for {store_name} = {found}")
+    return found
 
 def keyring_get_key(store_name):
     """

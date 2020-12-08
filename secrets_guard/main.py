@@ -13,8 +13,8 @@ from secrets_guard.store import Store, StoreField
 from secrets_guard.utils import keyval_list_to_dict, abort, terminate, prompt
 
 HELP = """\
-NAME 
-    secrets - encrypt and decrypt private information (such as passwords)
+NAME
+    secrets - encrypt and decrypt data
 
 SYNOPSIS
     secrets <COMMAND> [COMMAND_OPTIONS] [GENERAL_OPTIONS]
@@ -35,7 +35,7 @@ GLOBAL COMMANDS
         e.g. secrets list
  
 STORE COMMANDS
-    create [<STORE_NAME>] [--fields FIELDS] [--path <PATH>] [--key <STORE_KEY>]
+    create [<STORE_NAME>] [--fields FIELDS] [--pull] [--push] [--sync] [--path <PATH>] [--key <STORE_KEY>]
         Creates a new store at the given path using the given key.
         The FIELDS must be expressed as a comma separated list of field names.
         
@@ -46,63 +46,97 @@ STORE COMMANDS
         1) h: hidden (the user input is not shown)
         2) m: mandatory (the field must contain a non empty string)
         
+        If --pull is given, 'git pull' is performed before performing the action.
+        If --push is given, 'git push' is performed after the action has been successfully performed.
+        The option --sync acts as '--pull --push'.
+        
         e.g. secrets create password --fields Site,Account,Password,Other
         e.g. secrets create password --fields Site+m,Account+m,Password+mh,Other
         
-    destroy [<STORE_NAME>] [--path <PATH>]
+    destroy [<STORE_NAME>] [--pull] [--push] [--sync] [--path <PATH>]
         Destroys the store at the given path.
         
+        If --pull is given, 'git pull' is performed before performing the action.
+        If --push is given, 'git push' is performed after the action has been successfully performed.
+        The option --sync acts as '--pull --push'.
+
         e.g. secrets destroy password
 
-    key [<STORE_NAME>] [<NEW_STORE_KEY>] [--path <PATH>] [--key <STORE_KEY>]
+    key [<STORE_NAME>] [<NEW_STORE_KEY>] [--pull] [--push] [--path <PATH>] [--key <STORE_KEY>]
         Changes the key of the store from STORE_KEY to NEW_STORE_KEY.
+        
+        If --pull is given, 'git pull' is performed before performing the action.
+        If --push is given, 'git push' is performed after the action has been successfully performed.
         
         e.g. secrets key newkey
         
-    clear [<STORE_NAME>] [--path <PATH>] [--key <STORE_KEY>]
+    clear [<STORE_NAME>] [--pull] [--push] [--sync] [--path <PATH>] [--key <STORE_KEY>]
         Clears the content (all the secrets) of a store.
         The model is left unchanged.
         
-    show [<STORE_NAME>] [--no-table] [--when] [--[r]sort SORT_FIELD] [--path <PATH>] [--key <STORE_KEY>]
+        If --pull is given, 'git pull' is performed before performing the action.
+        If --push is given, 'git push' is performed after the action has been successfully performed.
+        The option --sync acts as '--pull --push'.
+
+    show [<STORE_NAME>] [--fields FIELDS]  [--when] [--[r]sort SORT_FIELD]  [--no-table] [--pull] [--path <PATH>] [--key <STORE_KEY>]
         Decrypts and shows the content of an entire store.
+        If --fields is is given, FIELDS specify the fields to show and these must 
+        be expressed as a comma separated list of field names.
         The --when parameter shows also temporal info (add/last modify date).
         The --sort and --rsort can be used for sort the secrets alphabetically by FIELD.
+        
+        If --pull is given, 'git pull' is performed before performing the action.
 
         e.g. secrets show password
         e.g. secrets show password --sort Added
         e.g. secrets show password --sort Modified
             
-    grep [<STORE_NAME>] [<SEARCH_PATTERN>] [--fields FIELDS] [--when] [--[r]sort SORT_FIELD] [--no-color] [--no-table] [--path <PATH>] [--key <STORE_KEY>]
+    grep [<STORE_NAME>] [<SEARCH_PATTERN>] [--fields FIELDS] [--when] [--[r]sort SORT_FIELD] [--no-table] [--no-color] [--pull] [--path <PATH>] [--key <STORE_KEY>]
         Performs a regular expression search between the data of the store.
         The SEARCH_PATTERN can be any valid regular expression.
         The matches will be highlighted unless --no-color is specified.
+        If --fields is is given, FIELDS specify the fields to show and these must 
+        be expressed as a comma separated list of field names.
         The --when parameter shows also temporal info (add/last modify date)
-        If FIELDS is given, it must be expressed as a comma separated list of field names.
         The --sort and --rsort can be used for sort the secrets alphabetically by SORT_FIELD.
+        
+        If --pull is given, 'git pull' is performed before performing the action.
 
         e.g. secrets grep password MyPass
         e.g. secrets grep password "^My.*word" --fields Name,Other
         
 SECRET COMMANDS
-    add [<STORE_NAME>] [--data DATA] [--path <PATH>] [--key <STORE_KEY>]
+    add [<STORE_NAME>] [--data DATA] [--pull] [--push] [--sync] [--path <PATH>] [--key <STORE_KEY>]
         Inserts a new secret into a store.
         The DATA must be expressed as a key=value comma separated list where the 
         key should be a field of the store.
         
+        If --pull is given, 'git pull' is performed before performing the action.
+        If --push is given, 'git push' is performed after the action has been successfully performed.
+        The option --sync acts as '--pull --push'.
+
         e.g. secrets add password --data Site="Megavideo",Account="me@gmail.com",Password="MyPassword" 
 
-    remove [<STORE_NAME>] [<SECRET_IDS>*] [--path <PATH>] [--key <STORE_KEY>]
+    remove [<STORE_NAME>] [<SECRET_IDS>*] [--pull] [--push] [--sync] [--path <PATH>] [--key <STORE_KEY>]
         Removes the secret(s) with the given SECRET_IDS from the store.
         The SECRET_IDS should be a comma separated list of IDs retrieved 
         using the secrets grep or the show command.
         
+        If --pull is given, 'git pull' is performed before performing the action.
+        If --push is given, 'git push' is performed after the action has been successfully performed.
+        The option --sync acts as '--pull --push'.
+
         e.g. secrets remove password 12
         e.g. secrets remove password 12,14,15,7 11
     
-    modify [<STORE_NAME>] [<SECRET_ID>] [--data DATA] [--path <PATH>] [--key <STORE_KEY>]
+    modify [<STORE_NAME>] [<SECRET_ID>] [--data DATA] [--pull] [--push] [--sync] [--path <PATH>] [--key <STORE_KEY>]
         Modifies the secret with the given SECRET_ID using the given DATA.
         The DATA must be expressed as a key=value list.
     
+        If --pull is given, 'git pull' is performed before performing the action.
+        If --push is given, 'git push' is performed after the action has been successfully performed.
+        The option --sync acts as '--pull --push'.
+
         e.g. secrets modify password 11 --data Password="MyNewPassword"
                
 GIT COMMANDS
@@ -148,7 +182,7 @@ def init_logging(lv):
     logging.basicConfig(
         level=lv,
         format="[%(levelname)s] %(asctime)s %(message)s",
-        datefmt='%d/%m/%y %H:%M:%S',
+        datefmt='%H:%M:%S',
         stream=sys.stdout)
 
 # =====================
@@ -326,10 +360,19 @@ def obtain_commons(positionals, options, ensure_existence=True, allow_keyring=Tr
 # =========================
 
 
-def safe_execute_command(command, error_message="Unexpected error occurred"):
+def safe_execute_command(command,
+                         options,
+                         error_message="Unexpected error occurred",
+                         pull=False, push=False):
     command_ok = False
     try:
+        if pull and (options.get(Options.PULL) or options.get(Options.SYNC)):
+            execute_git_pull(None, options)
+
         command_ok = command()
+        if push and (options.get(Options.PUSH) or options.get(Options.SYNC)):
+            execute_git_push(None, options)
+
     except Exception as e:
         logging.warning(f"Exception occurred\n{e}")
         logging.warning(traceback.format_exc())
@@ -337,62 +380,66 @@ def safe_execute_command(command, error_message="Unexpected error occurred"):
     if not command_ok:
         abort(error_message)
 
+    return command_ok
+
 
 def execute_create_store(positionals, options):
-    stores_path, store_name, store_key, use_keyring = \
-        obtain_commons(positionals, options,
-                       ensure_existence=False,
-                       allow_keyring=False)
-
-    # Store fields
-    raw_store_fields = options.get(Options.STORE_FIELDS)
-
-    if raw_store_fields is None:
-        raw_store_fields = []
-        i = 1
-        print("\n"
-              "Insert store fields with format <name>[+<attr_1><attr_2>...].\n"
-              "Available attributes are:\n"
-              "+ m (mandatory)\n"
-              "+ h (hidden)\n"
-              "(Leave empty for terminate the fields insertion)\n")
-        
-        while True:
-            f = input(f"{i} ° field: ")
-            if not f:
-                break
-
-            raw_store_fields.append(f)
-            i += 1
-
-    store_fields = []
-    for raw_field in raw_store_fields:
-        field_parts = raw_field.split("+")
-        fieldname = field_parts[0]
-        fieldattributes = field_parts[1] if len(field_parts) > 1 else []
-
-        store_fields.append(StoreField(
-            fieldname,
-            hidden=SecretAttributes.HIDDEN in fieldattributes,
-            mandatory=SecretAttributes.MANDATORY in fieldattributes)
-        )
-
     def do_create_store():
+        stores_path, store_name, store_key, use_keyring = \
+            obtain_commons(positionals, options,
+                           ensure_existence=False,
+                           allow_keyring=False)
+
+        # Store fields
+        raw_store_fields = options.get(Options.STORE_FIELDS)
+
+        if raw_store_fields is None:
+            raw_store_fields = []
+            i = 1
+            print("\n"
+                  "Insert store fields with format <name>[+<attr_1><attr_2>...].\n"
+                  "Available attributes are:\n"
+                  "+ m (mandatory)\n"
+                  "+ h (hidden)\n"
+                  "(Leave empty for terminate the fields insertion)\n")
+
+            while True:
+                f = input(f"{i} ° field: ")
+                if not f:
+                    break
+
+                raw_store_fields.append(f)
+                i += 1
+
+        store_fields = []
+        for raw_field in raw_store_fields:
+            field_parts = raw_field.split("+")
+            fieldname = field_parts[0]
+            fieldattributes = field_parts[1] if len(field_parts) > 1 else []
+
+            store_fields.append(StoreField(
+                fieldname,
+                hidden=SecretAttributes.HIDDEN in fieldattributes,
+                mandatory=SecretAttributes.MANDATORY in fieldattributes)
+            )
+
         store = Store(stores_path, store_name, store_key)
         store.add_fields(*store_fields)
         return store.save()
 
     safe_execute_command(
         do_create_store,
-        error_message=f"Error: cannot create store '{store_name}'"
+        options,
+        error_message=f"Error: cannot create store '{store_name}'",
+        pull=True, push=True
     )
 
 
 def execute_destroy_store(positionals, options):
-    stores_path = obtain_stores_path(options)
-    store_name = obtain_store_name(positionals)
-
     def do_destroy_store():
+        stores_path = obtain_stores_path(options)
+        store_name = obtain_store_name(positionals)
+
         store = Store(stores_path, store_name)
         if not store.destroy():
             return False
@@ -404,31 +451,38 @@ def execute_destroy_store(positionals, options):
 
     safe_execute_command(
         do_destroy_store,
-        error_message=f"Error: cannot destroy store '{store_name}'"
+        options,
+        error_message=f"Error: cannot destroy store '{store_name}'",
+        pull=True, push=True
     )
 
-
 def execute_list_stores(_, options):
-    stores_path = obtain_stores_path(options, ensure_existence=False)
+    def do_list_store():
+        stores_path = obtain_stores_path(options, ensure_existence=False)
 
-    if not stores_path.exists():
-        logging.warning("Store path does not exists")
-        return # not an error, just no stores
+        if not stores_path.exists():
+            logging.warning("Store path does not exists")
+            return # not an error, just no stores
 
-    for store_path in stores_path.iterdir():
-        if store_path.suffix == STORE_EXTENSION:
-            print(store_path.stem)
+        for store_path in stores_path.iterdir():
+            if store_path.suffix == STORE_EXTENSION:
+                print(store_path.stem)
 
+    safe_execute_command(
+        do_list_store,
+        options,
+        error_message=f"Error: cannot list stores",
+        pull=True, push=False
+    )
 
 def execute_show_store(positionals, options):
-    stores_path, store_name, store_key, use_keyring = \
-        obtain_commons(positionals, options)
-    fields = options.get(Options.STORE_FIELDS)
-    if fields:
-        fields = fields.split(",")
-
-
     def do_show_store():
+        stores_path, store_name, store_key, use_keyring = \
+            obtain_commons(positionals, options)
+        fields = options.get(Options.STORE_FIELDS)
+        if fields:
+            fields = fields.split(",")
+
         store = Store(stores_path, store_name, store_key)
         open_store(store, update_keyring=use_keyring)
         return store.show(table=not options.get(Options.NO_TABLE),
@@ -439,49 +493,18 @@ def execute_show_store(positionals, options):
 
     safe_execute_command(
         do_show_store,
-        error_message=f"Error: cannot show store '{store_name}'"
+        options,
+        error_message=f"Error: cannot show store '{store_name}'",
+        pull=True, push=False
     )
-
-
-def execute_git_push(_, options):
-    stores_path = obtain_stores_path(options)
-
-    def do_push():
-        commit_message = get_option_or_default(options, Options.GIT_MESSAGE)
-
-        if not commit_message:
-            commit_message = "Committed on " + datetime.datetime.now().strftime("%H:%M:%S %d/%m/%Y")
-
-        logging.debug(f"Will push {stores_path} with message: {commit_message}")
-
-        return gitsync.push(stores_path, commit_message)
-
-    safe_execute_command(
-        do_push,
-        error_message="Error: cannot push"
-    )
-
-
-def execute_git_pull(_, options):
-    store_path = obtain_stores_path(options)
-
-    def do_pull():
-        logging.debug(f"Will pull from to {store_path}")
-        return gitsync.pull(store_path)
-
-    safe_execute_command(
-        do_pull,
-        error_message="Error: cannot pull"
-    )
-
 
 def execute_change_store_key(positionals, options):
-    stores_path, store_name, store_key, use_keyring = \
-        obtain_commons(positionals, options)
-    new_store_key = get_positional_or_prompt(positionals, 1, "New store key: ",
-                                             secure=True, double_check=True)
-
     def do_change_store_key():
+        stores_path, store_name, store_key, use_keyring = \
+            obtain_commons(positionals, options)
+        new_store_key = get_positional_or_prompt(positionals, 1, "New store key: ",
+                                                 secure=True, double_check=True)
+
         store = Store(stores_path, store_name, store_key)
         store.open()
 
@@ -498,15 +521,17 @@ def execute_change_store_key(positionals, options):
 
     safe_execute_command(
         do_change_store_key,
-        error_message=f"Error: cannot change store key of store '{store_name}'"
+        options,
+        error_message=f"Error: cannot change store key of store '{store_name}'",
+        pull=True, push=True
     )
 
 
 def execute_clear_store(positionals, options):
-    stores_path, store_name, store_key, use_keyring = \
-        obtain_commons(positionals, options)
-
     def do_clear_store():
+        stores_path, store_name, store_key, use_keyring = \
+            obtain_commons(positionals, options)
+
         store = Store(stores_path, store_name, store_key)
         store.open()
         store.clear_secrets()
@@ -514,17 +539,19 @@ def execute_clear_store(positionals, options):
 
     safe_execute_command(
         do_clear_store,
-        error_message=f"Error: cannot clear store '{store_name}'"
+        options,
+        error_message=f"Error: cannot clear store '{store_name}'",
+        pull=True, push=True
     )
 
 
 def execute_add_secret(positionals, options):
-    stores_path, store_name, store_key, use_keyring = \
-        obtain_commons(positionals, options)
-
-    secret_data = options.get(Options.SECRET_DATA)
-
     def do_add_secret():
+        stores_path, store_name, store_key, use_keyring = \
+            obtain_commons(positionals, options)
+
+        secret_data = options.get(Options.SECRET_DATA)
+
         store = Store(stores_path, store_name, store_key)
         open_store(store, update_keyring=use_keyring)
 
@@ -561,20 +588,22 @@ def execute_add_secret(positionals, options):
 
     safe_execute_command(
         do_add_secret,
-        error_message=f"Error: cannot add secret to store '{store_name}'"
+        options,
+        error_message=f"Error: cannot add secret to store '{store_name}'",
+        pull=True, push=True
     )
 
 
 def execute_grep_secret(positionals, options):
-    stores_path, store_name, store_key, use_keyring = \
-        obtain_commons(positionals, options)
-
-    grep_pattern = get_positional_or_prompt(positionals, 1, "Search pattern: ")
-    fields = options.get(Options.STORE_FIELDS)
-    if fields:
-        fields = fields.split(",")
-
     def do_grep_secret():
+        stores_path, store_name, store_key, use_keyring = \
+            obtain_commons(positionals, options)
+
+        grep_pattern = get_positional_or_prompt(positionals, 1, "Search pattern: ")
+        fields = options.get(Options.STORE_FIELDS)
+        if fields:
+            fields = fields.split(",")
+
         store = Store(stores_path, store_name, store_key)
         open_store(store, update_keyring=use_keyring)
         return store.grep(grep_pattern,
@@ -585,26 +614,29 @@ def execute_grep_secret(positionals, options):
                           sort_by=options.get(Options.SORT) or options.get(Options.RSORT),
                           reverse=options.get(Options.RSORT) is not None)
 
+
     safe_execute_command(
         do_grep_secret,
-        error_message=f"Error: cannot search for secrets in store '{store_name}'"
+        options,
+        error_message=f"Error: cannot search for secrets in store '{store_name}'",
+        pull=True, push=False
     )
 
 
 def execute_remove_secret(positionals, options):
-    stores_path, store_name, store_key, use_keyring = \
-        obtain_commons(positionals, options)
-
-    raw_secrets_ids = get_positional_or_prompt(
-        positionals, 1, "ID of the secret(s) to remove: ", count=None)
-
-    # Convert to list if is a string (took with input())
-    if isinstance(raw_secrets_ids, str):
-        raw_secrets_ids = raw_secrets_ids.split(" ")
-
-    secret_ids = [int(sid) for sid in raw_secrets_ids]
-
     def do_remove_secret():
+        stores_path, store_name, store_key, use_keyring = \
+            obtain_commons(positionals, options)
+
+        raw_secrets_ids = get_positional_or_prompt(
+            positionals, 1, "ID of the secret(s) to remove: ", count=None)
+
+        # Convert to list if is a string (took with input())
+        if isinstance(raw_secrets_ids, str):
+            raw_secrets_ids = raw_secrets_ids.split(" ")
+
+        secret_ids = [int(sid) for sid in raw_secrets_ids]
+
         store = Store(stores_path, store_name, store_key)
         open_store(store, update_keyring=use_keyring)
         if not store.remove_secrets(*secret_ids):
@@ -613,17 +645,18 @@ def execute_remove_secret(positionals, options):
 
     safe_execute_command(
         do_remove_secret,
-        error_message=f"Error: cannot remove secret(s) with ID(s) {secret_ids} from store '{store_name}'"
+        options,
+        error_message=f"Error: cannot remove secret(s) with ID(s) {secret_ids} from store '{store_name}'",
+        pull=True, push=True
     )
 
-
 def execute_modify_secret(positionals, options):
-    stores_path, store_name, store_key, use_keyring = \
-        obtain_commons(positionals, options)
-    secret_id = int(get_positional_or_prompt(positionals, 1, "ID of the secret to modify: "))
-    secret_data = options.get(Options.SECRET_DATA)
-
     def do_modify_secret():
+        stores_path, store_name, store_key, use_keyring = \
+            obtain_commons(positionals, options)
+        secret_id = int(get_positional_or_prompt(positionals, 1, "ID of the secret to modify: "))
+        secret_data = options.get(Options.SECRET_DATA)
+
         store = Store(stores_path, store_name, store_key)
         open_store(store, update_keyring=use_keyring)
 
@@ -674,7 +707,44 @@ def execute_modify_secret(positionals, options):
 
     safe_execute_command(
         do_modify_secret,
-        error_message=f"Error: cannot modify secret with ID {secret_id} from store '{store_name}'"
+        options,
+        error_message=f"Error: cannot modify secret with ID {secret_id} from store '{store_name}'",
+        pull=True, push=True
+    )
+
+def execute_git_push(_, options):
+    def do_push():
+        stores_path = obtain_stores_path(options)
+
+        commit_message = get_option_or_default(options, Options.GIT_MESSAGE)
+
+        if not commit_message:
+            commit_message = "Committed on " + datetime.datetime.now().strftime("%H:%M:%S %d/%m/%Y")
+
+        logging.debug(f"Will push {stores_path} with message: {commit_message}")
+
+        return gitsync.push(stores_path, commit_message)
+
+    safe_execute_command(
+        do_push,
+        options,
+        error_message="Error: cannot push",
+        pull=False, push=False
+    )
+
+
+def execute_git_pull(_, options):
+    def do_pull():
+        store_path = obtain_stores_path(options)
+
+        logging.debug(f"Will pull from to {store_path}")
+        return gitsync.pull(store_path)
+
+    safe_execute_command(
+        do_pull,
+        options,
+        error_message="Error: cannot pull",
+        pull=False, push=False
     )
 
 def open_store(store, update_keyring=True):
@@ -756,6 +826,18 @@ def main():
 
     parser.add_argument("-m", "--message",
                         dest=Options.GIT_MESSAGE)
+
+    parser.add_argument("--pull",
+                        action="store_true",
+                        dest=Options.PULL)
+
+    parser.add_argument("--push",
+                        action="store_true",
+                        dest=Options.PUSH)
+
+    parser.add_argument("--sync",
+                        action="store_true",
+                        dest=Options.SYNC)
 
     parser.add_argument("-d", "--data",
                         dest=Options.SECRET_DATA)
