@@ -430,7 +430,7 @@ def execute_create_store(positionals, options):
     safe_execute_command(
         do_create_store,
         options,
-        error_message=f"Error: cannot create store '{store_name}'",
+        error_message=f"Error: cannot create store",
         pull=True, push=True
     )
 
@@ -452,7 +452,7 @@ def execute_destroy_store(positionals, options):
     safe_execute_command(
         do_destroy_store,
         options,
-        error_message=f"Error: cannot destroy store '{store_name}'",
+        error_message=f"Error: cannot destroy store",
         pull=True, push=True
     )
 
@@ -494,7 +494,7 @@ def execute_show_store(positionals, options):
     safe_execute_command(
         do_show_store,
         options,
-        error_message=f"Error: cannot show store '{store_name}'",
+        error_message=f"Error: cannot show store",
         pull=True, push=False
     )
 
@@ -522,7 +522,7 @@ def execute_change_store_key(positionals, options):
     safe_execute_command(
         do_change_store_key,
         options,
-        error_message=f"Error: cannot change store key of store '{store_name}'",
+        error_message=f"Error: cannot change store key of store",
         pull=True, push=True
     )
 
@@ -540,7 +540,7 @@ def execute_clear_store(positionals, options):
     safe_execute_command(
         do_clear_store,
         options,
-        error_message=f"Error: cannot clear store '{store_name}'",
+        error_message=f"Error: cannot clear store",
         pull=True, push=True
     )
 
@@ -589,7 +589,7 @@ def execute_add_secret(positionals, options):
     safe_execute_command(
         do_add_secret,
         options,
-        error_message=f"Error: cannot add secret to store '{store_name}'",
+        error_message=f"Error: cannot add secret to store",
         pull=True, push=True
     )
 
@@ -618,7 +618,7 @@ def execute_grep_secret(positionals, options):
     safe_execute_command(
         do_grep_secret,
         options,
-        error_message=f"Error: cannot search for secrets in store '{store_name}'",
+        error_message=f"Error: cannot search for secrets in store",
         pull=True, push=False
     )
 
@@ -646,7 +646,7 @@ def execute_remove_secret(positionals, options):
     safe_execute_command(
         do_remove_secret,
         options,
-        error_message=f"Error: cannot remove secret(s) with ID(s) {secret_ids} from store '{store_name}'",
+        error_message=f"Error: cannot remove secrets from store",
         pull=True, push=True
     )
 
@@ -708,7 +708,7 @@ def execute_modify_secret(positionals, options):
     safe_execute_command(
         do_modify_secret,
         options,
-        error_message=f"Error: cannot modify secret with ID {secret_id} from store '{store_name}'",
+        error_message=f"Error: cannot modify secret from store",
         pull=True, push=True
     )
 
