@@ -40,6 +40,8 @@ class Options:
     NO_TABLE = "no-table"
     NO_KEYRING = "no-keyring"
     WHEN = "when"
+    SORT = "sort"
+    RSORT = "rsort"
 
 
 class SecretAttributes:

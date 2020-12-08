@@ -63,18 +63,22 @@ STORE COMMANDS
         Clears the content (all the secrets) of a store.
         The model is left unchanged.
         
-    show [<STORE_NAME>] [--no-table] [--when] [--path <PATH>] [--key <STORE_KEY>]
+    show [<STORE_NAME>] [--no-table] [--when] [--[r]sort SORT_FIELD] [--path <PATH>] [--key <STORE_KEY>]
         Decrypts and shows the content of an entire store.
-        The --when parameter shows also temporal info (add/last modify date)
+        The --when parameter shows also temporal info (add/last modify date).
+        The --sort and --rsort can be used for sort the secrets alphabetically by FIELD.
 
         e.g. secrets show password
+        e.g. secrets show password --sort Added
+        e.g. secrets show password --sort Modified
             
-    grep [<STORE_NAME>] [<SEARCH_PATTERN>] [--fields FIELDS] [--when]  [--no-color] [--no-table] [--path <PATH>] [--key <STORE_KEY>]
+    grep [<STORE_NAME>] [<SEARCH_PATTERN>] [--fields FIELDS] [--when] [--[r]sort SORT_FIELD] [--no-color] [--no-table] [--path <PATH>] [--key <STORE_KEY>]
         Performs a regular expression search between the data of the store.
         The SEARCH_PATTERN can be any valid regular expression.
         The matches will be highlighted unless --no-color is specified.
         The --when parameter shows also temporal info (add/last modify date)
         If FIELDS is given, it must be expressed as a comma separated list of field names.
+        The --sort and --rsort can be used for sort the secrets alphabetically by SORT_FIELD.
 
         e.g. secrets grep password MyPass
         e.g. secrets grep password "^My.*word" --fields Name,Other
@@ -424,7 +428,9 @@ def execute_show_store(positionals, options):
         store = Store(stores_path, store_name, store_key)
         open_store(store, update_keyring=use_keyring)
         return store.show(table=not options.get(Options.NO_TABLE),
-                          when=options.get(Options.WHEN))
+                          when=options.get(Options.WHEN),
+                          sort_by=options.get(Options.SORT) or options.get(Options.RSORT),
+                          reverse=options.get(Options.RSORT) is not None)
 
     safe_execute_command(
         do_show_store,
@@ -566,7 +572,9 @@ def execute_grep_secret(positionals, options):
         return store.grep(grep_pattern,
                           colors=not options.get(Options.NO_COLOR),
                           table=not options.get(Options.NO_TABLE),
-                          when=options.get(Options.WHEN))
+                          when=options.get(Options.WHEN),
+                          sort_by=options.get(Options.SORT) or options.get(Options.RSORT),
+                          reverse=options.get(Options.RSORT) is not None)
 
     safe_execute_command(
         do_grep_secret,
@@ -719,6 +727,12 @@ def main():
     parser.add_argument("-f", "--fields",
                         dest=Options.STORE_FIELDS)
 
+    parser.add_argument("-s", "--sort",
+                        dest=Options.SORT)
+
+    parser.add_argument("-r", "--rsort",
+                        dest=Options.RSORT)
+
     parser.add_argument("--no-table",
                         action="store_true",
                         dest=Options.NO_TABLE)
@@ -734,7 +748,7 @@ def main():
     parser.add_argument("-m", "--message",
                         dest=Options.GIT_MESSAGE)
 
-    parser.add_argument("--data",
+    parser.add_argument("-d", "--data",
                         dest=Options.SECRET_DATA)
 
 

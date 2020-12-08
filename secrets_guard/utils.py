@@ -1,9 +1,13 @@
+import datetime
 import logging
 import re
 import sys
+import time
 from functools import reduce
 from getpass import getpass
 from sys import exit
+
+from secrets_guard import DATETIME_FORMAT
 
 PROMPT_DOUBLE_CHECK_FAILED = -1
 
@@ -52,36 +56,90 @@ def keyval_list_to_dict(l):
     return d
 
 
-def enumerate_data(headers, data, enum_field_name="ID"):
+DATETIME_REGEX = re.compile("\d{2}/\d{2}/\d{4} \d{2}:\d{2}:\d{2}")
+
+def enumerate_data(headers, data,
+                   enum_field_name="ID", sort_by="ID", reverse=False):
     """
     Returns the enumerated headers and data.
     The field enum_field_name will be added to the headers, and the same field
     will be set for the items of data equal to their index.
     :param headers: the headers
     :param data: the data
-    :param enum_field_name: the field name
+    :param enum_field_name: the field name used for enumeration
+    :param sort_by: the field on which sort the data
+    :param reverse: whether reverse sorting
     :return: the enumerated headers and the enumerated data
     """
+    logging.debug(f"enumerate_data(headers={headers},"
+                  f"{len(data)} secrets, enum_field_name={enum_field_name}, "
+                  f"sort_by={sort_by}, reverse={reverse})")
+
     enum_headers = [enum_field_name] + headers
     enum_data = []
+
     for i, d in enumerate(data):
         enum_data.append(d)
         if enum_field_name not in d:
             enum_data[i][enum_field_name] = i
+
+    if sort_by:
+        # Detect type of field, in order to handle invalid values properly
+        _field_type_str = False
+        _field_type_int = False
+        _field_type_datetime = False
+
+        for s in enum_data:
+            x = s.get(sort_by)
+
+            if isinstance(x, int):
+                logging.debug(f"Type of field '{sort_by}'=int")
+                _field_type_int = True
+                break
+            if isinstance(x, str):
+                if DATETIME_REGEX.match(x):
+                    logging.debug(f"Type of field '{sort_by}'=datetime")
+                    _field_type_datetime = True
+                    break
+                logging.debug(f"Type of field '{sort_by}'=str")
+                _field_type_str = True
+                break
+
+
+        def cmp(s):
+            x = s.get(sort_by)
+            if _field_type_str:
+                if x is not None:
+                    return x.lower()
+                return ""
+            if _field_type_int:
+                if x is not None:
+                    return x
+                return 0
+            if _field_type_datetime:
+                if x is not None:
+                    return datetime.datetime.strptime(x, DATETIME_FORMAT)
+                return datetime.datetime.fromtimestamp(0)
+
+        enum_data = sorted(enum_data, key=cmp, reverse=reverse)
+
     return enum_headers, enum_data
 
 
-def tabulate_enum(headers, data, enum_field_name="ID"):
+def tabulate_enum(headers, data, enum_field_name="ID",
+                  sort_by=None, reverse=False):
     """
     Returns a string representation of the given data list using the given headers.
     Furthermore add a column used for enumerate rows.
     :param headers: a list of strings representing the headers
     :param data: a list of objects with the properties specified in headers
     :param enum_field_name: the name of the header used for enumerate the rows
+    :param sort_by: the field on which sort the data
+    :param reverse: whether reverse sorting
     :return: the table string of the data
     """
-    enum_headers, enum_data = enumerate_data(headers, data, enum_field_name)
-
+    enum_headers, enum_data = enumerate_data(headers, data, enum_field_name,
+                                             sort_by=sort_by, reverse=reverse)
     return tabulate(enum_headers, enum_data)
 
 

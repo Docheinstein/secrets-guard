@@ -6,7 +6,7 @@ import re
 from datetime import datetime
 from pathlib import Path
 
-from secrets_guard import STORE_EXTENSION
+from secrets_guard import STORE_EXTENSION, DATETIME_FORMAT
 from secrets_guard.crypt import aes_encrypt_file, aes_decrypt_file
 from secrets_guard.utils import tabulate_enum, abort, highlight, enumerate_data
 
@@ -314,25 +314,32 @@ class Store:
 
         return write_ok and self._path.exists()
 
-    def show(self, table=True, when=False):
+    def show(self, table=True, when=False, sort_by=None, reverse=False):
         """
         Prints the data of the store as tabulated data.
         :param table: whether show the data within a table
         :param when: whether show the creation/modification info
+        :param sort_by: sort by field
+        :param reverse: whether reverse sorting
         :return: whether the store has been printed successfully
         """
+
+        fields = self.fieldsnames(when=when)
+        sorted_secrets = Store.sorted_secrets(self._secrets)
+
         logging.debug("Showing store content...")
 
         if table:
-            print(tabulate_enum(self.fieldsnames(when),
-                                Store.sorted_secrets(self._secrets)))
+            print(tabulate_enum(fields, sorted_secrets,
+                                sort_by=sort_by, reverse=reverse))
         else:
-            print(Store.list_secrets(self.fieldsnames(when),
-                                     Store.sorted_secrets(self._secrets)))
+            print(Store.list_secrets(fields, sorted_secrets,
+                                     sort_by=sort_by, reverse=reverse))
 
         return True
 
-    def grep(self, grep_pattern, colors=True, table=True, when=False):
+    def grep(self, grep_pattern, colors=True, table=True, when=False,
+             sort_by=None, reverse=False):
         """
         Performs a regular expression between each field of each secret and
         prints the matches a tabular data.
@@ -340,9 +347,12 @@ class Store:
         :param colors: whether highlight the matches
         :param table: whether show the data within a table
         :param when: whether show the creation/modification info
+        :param sort_by: sort by field
+        :param reverse: whether reverse sorting
         :return: whether the secret has been grep-ed successfully
         """
 
+        fields = self.fieldsnames(when=when)
         matches = []
         for i, secret in enumerate(Store.sorted_secrets(self._secrets)):
             secretmatch = None
@@ -372,9 +382,11 @@ class Store:
         logging.debug(f"There are {len(matches)} matches")
 
         if table:
-            print(tabulate_enum(self.fieldsnames(when), matches))
+            print(tabulate_enum(fields, matches,
+                                sort_by=sort_by, reverse=reverse))
         else:
-            print(Store.list_secrets(self.fieldsnames(when), matches))
+            print(Store.list_secrets(fields, matches,
+                                     sort_by=sort_by, reverse=reverse))
 
         return True
 
@@ -400,7 +412,7 @@ class Store:
 
         if temporal_field:
             # Update the temporal field
-            secret[temporal_field] = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+            secret[temporal_field] = datetime.now().strftime(DATETIME_FORMAT)
 
         logging.debug(f"Secret after mod: {secret}")
 
@@ -459,15 +471,19 @@ Secrets: {self._secrets}\
         return j and Store.Json.MODEL in j and Store.Json.DATA in j
 
     @staticmethod
-    def list_secrets(headers, secrets):
+    def list_secrets(headers, secrets,
+                     sort_by=None, reverse=False):
         """
         Returns a the content of the secrets, field per field.
         :param headers: the store headers
         :param secrets: the secrets
+        :param sort_by: the field on which sort the data
+        :param reverse: whether reverse sorting
         :return: a string representing the secrets and their content
         """
         s = ""
-        enum_headers, enum_data = enumerate_data(headers, secrets)
+        enum_headers, enum_data = enumerate_data(headers, secrets,
+                                                 sort_by=sort_by, reverse=reverse)
 
         for di, d in enumerate(enum_data):
             is_last_data = di >= len(enum_data) - 1
@@ -482,6 +498,6 @@ Secrets: {self._secrets}\
                     s += "\n"
 
             if not is_last_data:
-                s += "-" * 20 + "\n"
+                s += "─" * 30 + "\n"
 
         return s
