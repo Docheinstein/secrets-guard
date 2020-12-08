@@ -423,12 +423,17 @@ def execute_list_stores(_, options):
 def execute_show_store(positionals, options):
     stores_path, store_name, store_key, use_keyring = \
         obtain_commons(positionals, options)
+    fields = options.get(Options.STORE_FIELDS)
+    if fields:
+        fields = fields.split(",")
+
 
     def do_show_store():
         store = Store(stores_path, store_name, store_key)
         open_store(store, update_keyring=use_keyring)
         return store.show(table=not options.get(Options.NO_TABLE),
                           when=options.get(Options.WHEN),
+                          fields=fields,
                           sort_by=options.get(Options.SORT) or options.get(Options.RSORT),
                           reverse=options.get(Options.RSORT) is not None)
 
@@ -565,11 +570,15 @@ def execute_grep_secret(positionals, options):
         obtain_commons(positionals, options)
 
     grep_pattern = get_positional_or_prompt(positionals, 1, "Search pattern: ")
+    fields = options.get(Options.STORE_FIELDS)
+    if fields:
+        fields = fields.split(",")
 
     def do_grep_secret():
         store = Store(stores_path, store_name, store_key)
         open_store(store, update_keyring=use_keyring)
         return store.grep(grep_pattern,
+                          fields=fields,
                           colors=not options.get(Options.NO_COLOR),
                           table=not options.get(Options.NO_TABLE),
                           when=options.get(Options.WHEN),

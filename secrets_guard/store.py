@@ -105,17 +105,26 @@ class Store:
         """
         return self._fields
 
-    def fieldsnames(self, when=False):
+    def fieldsnames(self, id=False, when=False):
         """
         Returns the store fields names.
+        :param id: add the ID field
         :param when: add the temporal fields (creation/modification)
         :return: the store fields names
         """
+        ret = []
+        if id:
+            ret += ["ID"]
 
-        ret = [f.name for f in self.fields]
+        ret += [f.name for f in self.fields]
+
         if when:
-            ret += [StoreField.ADD_DATETIME, StoreField.LAST_MODIFY_DATETIME]
+            ret += Store._when_fieldsnames()
         return ret
+
+    @staticmethod
+    def _when_fieldsnames():
+        return [StoreField.ADD_DATETIME, StoreField.LAST_MODIFY_DATETIME]
 
     def add_fields(self, *fields):
         """
@@ -314,17 +323,20 @@ class Store:
 
         return write_ok and self._path.exists()
 
-    def show(self, table=True, when=False, sort_by=None, reverse=False):
+    def show(self, table=True, when=False, fields=None, sort_by=None, reverse=False):
         """
         Prints the data of the store as tabulated data.
         :param table: whether show the data within a table
         :param when: whether show the creation/modification info
+        :param fields: if given, show only the list of fields
         :param sort_by: sort by field
         :param reverse: whether reverse sorting
         :return: whether the store has been printed successfully
         """
 
-        fields = self.fieldsnames(when=when)
+        if not fields:
+            fields = self.fieldsnames(id=True, when=when)
+
         sorted_secrets = Store.sorted_secrets(self._secrets)
 
         logging.debug("Showing store content...")
@@ -338,12 +350,14 @@ class Store:
 
         return True
 
-    def grep(self, grep_pattern, colors=True, table=True, when=False,
+    def grep(self, grep_pattern, fields=None,
+             colors=True, table=True, when=False,
              sort_by=None, reverse=False):
         """
         Performs a regular expression between each field of each secret and
         prints the matches a tabular data.
         :param grep_pattern: the search pattern as a valid regular expression
+        :param fields: if given, show only the list of fields
         :param colors: whether highlight the matches
         :param table: whether show the data within a table
         :param when: whether show the creation/modification info
@@ -352,7 +366,9 @@ class Store:
         :return: whether the secret has been grep-ed successfully
         """
 
-        fields = self.fieldsnames(when=when)
+        if not fields:
+            fields = self.fieldsnames(id=True, when=when)
+
         matches = []
         for i, secret in enumerate(Store.sorted_secrets(self._secrets)):
             secretmatch = None

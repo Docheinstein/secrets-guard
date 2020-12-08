@@ -75,7 +75,6 @@ def enumerate_data(headers, data,
                   f"{len(data)} secrets, enum_field_name={enum_field_name}, "
                   f"sort_by={sort_by}, reverse={reverse})")
 
-    enum_headers = [enum_field_name] + headers
     enum_data = []
 
     for i, d in enumerate(data):
@@ -123,7 +122,7 @@ def enumerate_data(headers, data,
 
         enum_data = sorted(enum_data, key=cmp, reverse=reverse)
 
-    return enum_headers, enum_data
+    return headers, enum_data
 
 
 def tabulate_enum(headers, data, enum_field_name="ID",
