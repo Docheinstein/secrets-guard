@@ -462,11 +462,13 @@ def execute_list_stores(_, options):
 
         if not stores_path.exists():
             logging.warning("Store path does not exists")
-            return # not an error, just no stores
+            return True # not an error, just no stores
 
         for store_path in stores_path.iterdir():
             if store_path.suffix == STORE_EXTENSION:
                 print(store_path.stem)
+
+        return True
 
     safe_execute_command(
         do_list_store,
