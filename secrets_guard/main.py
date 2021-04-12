@@ -201,7 +201,7 @@ def init_logging(lv):
 #     parsed_args = Args()
 #
 #     if len(arguments) < 1:
-#         abort("Error: the command must be specified")
+#         abort("ERROR: the command must be specified")
 #
 #     # Parse command
 #
@@ -212,7 +212,7 @@ def init_logging(lv):
 #             parsed_args.command = command
 #
 #     if parsed_args.command is None:
-#         abort("Error: unknown command '%s'" % command_request)
+#         abort("ERROR: unknown command '%s'" % command_request)
 #
 #     # Parse position/keyword arguments
 #
@@ -331,7 +331,7 @@ def obtain_stores_path(options, ensure_existence=True) -> Path:
     """
     path = Path(get_option_or_default(options, Options.STORE_PATH, DEFAULT_SECRETS_PATH))
     if ensure_existence and not path.exists():
-        abort(f"Error: path does not exist ({path})")
+        abort(f"ERROR: path does not exist ({path})")
     return path
 
 
@@ -430,7 +430,7 @@ def execute_create_store(positionals, options):
     safe_execute_command(
         do_create_store,
         options,
-        error_message=f"Error: cannot create store",
+        error_message=f"ERROR: cannot create store",
         pull=True, push=True
     )
 
@@ -452,7 +452,7 @@ def execute_destroy_store(positionals, options):
     safe_execute_command(
         do_destroy_store,
         options,
-        error_message=f"Error: cannot destroy store",
+        error_message=f"ERROR: cannot destroy store",
         pull=True, push=True
     )
 
@@ -471,7 +471,7 @@ def execute_list_stores(_, options):
     safe_execute_command(
         do_list_store,
         options,
-        error_message=f"Error: cannot list stores",
+        error_message=f"ERROR: cannot list stores",
         pull=True, push=False
     )
 
@@ -494,7 +494,7 @@ def execute_show_store(positionals, options):
     safe_execute_command(
         do_show_store,
         options,
-        error_message=f"Error: cannot show store",
+        error_message=f"ERROR: cannot show store",
         pull=True, push=False
     )
 
@@ -522,7 +522,7 @@ def execute_change_store_key(positionals, options):
     safe_execute_command(
         do_change_store_key,
         options,
-        error_message=f"Error: cannot change store key of store",
+        error_message=f"ERROR: cannot change store key of store",
         pull=True, push=True
     )
 
@@ -540,7 +540,7 @@ def execute_clear_store(positionals, options):
     safe_execute_command(
         do_clear_store,
         options,
-        error_message=f"Error: cannot clear store",
+        error_message=f"ERROR: cannot clear store",
         pull=True, push=True
     )
 
@@ -589,7 +589,7 @@ def execute_add_secret(positionals, options):
     safe_execute_command(
         do_add_secret,
         options,
-        error_message=f"Error: cannot add secret to store",
+        error_message=f"ERROR: cannot add secret to store",
         pull=True, push=True
     )
 
@@ -618,7 +618,7 @@ def execute_grep_secret(positionals, options):
     safe_execute_command(
         do_grep_secret,
         options,
-        error_message=f"Error: cannot search for secrets in store",
+        error_message=f"ERROR: cannot search for secrets in store",
         pull=True, push=False
     )
 
@@ -646,7 +646,7 @@ def execute_remove_secret(positionals, options):
     safe_execute_command(
         do_remove_secret,
         options,
-        error_message=f"Error: cannot remove secrets from store",
+        error_message=f"ERROR: cannot remove secrets from store",
         pull=True, push=True
     )
 
@@ -667,7 +667,7 @@ def execute_modify_secret(positionals, options):
             secret = store.secret(secret_id)
 
             if not secret:
-                abort("Error: invalid secret ID; index out of bound")
+                abort("ERROR: invalid secret ID; index out of bound")
 
             logging.debug(f"Will modify secret {secret}")
 
@@ -708,7 +708,7 @@ def execute_modify_secret(positionals, options):
     safe_execute_command(
         do_modify_secret,
         options,
-        error_message=f"Error: cannot modify secret from store",
+        error_message=f"ERROR: cannot modify secret from store",
         pull=True, push=True
     )
 
@@ -728,7 +728,7 @@ def execute_git_push(_, options):
     safe_execute_command(
         do_push,
         options,
-        error_message="Error: cannot push",
+        error_message="ERROR: cannot push",
         pull=False, push=False
     )
 
@@ -743,7 +743,7 @@ def execute_git_pull(_, options):
     safe_execute_command(
         do_pull,
         options,
-        error_message="Error: cannot pull",
+        error_message="ERROR: cannot pull",
         pull=False, push=False
     )
 
@@ -860,10 +860,10 @@ def main():
     positionals = positionals[1:]
 
     if not command:
-        abort(f"Error: command not provided")
+        abort(f"ERROR: command not provided")
     
     if command not in COMMAND_DISPATCHER:
-        abort(f"Error: unknown command '{command}'")
+        abort(f"ERROR: unknown command '{command}'")
         
     logging.info(f"Executing command '{command}'")
 

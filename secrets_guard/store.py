@@ -291,7 +291,7 @@ class Store:
         jstore = do_store_open()
 
         if abort_on_fail and not jstore:
-            abort(f"Error: unable to open store '{self.name}'")
+            abort(f"ERROR: unable to open store '{self.name}'")
 
         # Parse the content
         self._parse_model(jstore)
