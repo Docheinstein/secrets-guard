@@ -1,17 +1,14 @@
 import os
 from setuptools import setup, find_packages
 
-from secrets_guard import APP_NAME, APP_VERSION
-
-
 def read(file_name):
     with open(os.path.join(os.path.dirname(__file__), file_name)) as f:
         return f.read()
 
 
 setup(
-    name=APP_NAME,
-    version=APP_VERSION,
+    name="secrets-guard",
+    version="0.16",
 
     # Requires python3.5
     python_requires=">=3",
@@ -21,14 +18,9 @@ setup(
 
     include_package_data=True,
 
-    # Scripts to install to the user executable path.
-    # Note that this might be something like /home/user/.local/bin
-    # which in Debian distributions is not included in $PATH.
-    # If you want to use just "compress" or "uncompress", you should add that
-    # path to your $PATH.
     entry_points={
       'console_scripts': [
-          'secrets=secrets_guard.main:main'
+          'secrets=secrets_guard.__main__:main'
       ]
     },
 
@@ -42,8 +34,8 @@ setup(
     author="Stefano Dottore",
     author_email="docheinstein@gmail.com",
     description="Encrypts and decrypts private information",
-    long_description_content_type="text/x-rst",
-    long_description=read('README.rst'),
+    long_description=read('README.md'),
+    long_description_content_type="text/markdown",
     license="MIT",
     keywords="pass password private key encrypt decrypt crypt",
     url="https://github.com/Docheinstein/secrets-guard",

@@ -6,7 +6,7 @@ import unittest
 from Cryptodome import Random
 from Cryptodome.Cipher import AES
 
-from secrets_guard.crypt import aes_encrypt_file, aes_decrypt_file, aes_encrypt, aes_decrypt
+from secrets_guard.aes import aes_encrypt_file, aes_decrypt_file, aes_encrypt, aes_decrypt
 
 
 def random_string(length=10, alphabet=string.ascii_lowercase):
