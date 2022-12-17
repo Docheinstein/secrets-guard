@@ -14,6 +14,9 @@ SECRETS_PATH = Path.home() / ".secrets"
 FIELD_ATTRIBUTE_HIDDEN = "h"
 FIELD_ATTRIBUTE_MANDATORY = "m"
 
+COLOR_RESET = "\33[0m"
+COLOR_RED = "\33[31m"
+
 def abort(*args, **kwargs):
     print(*args, **kwargs, file=sys.stderr)
     exit(1)
@@ -57,10 +60,6 @@ def sort(data, sort_field, reverse):
     return sorted(data, key=cmp, reverse=reverse)
 
 def tabulate(headers, data):
-    """
-    Returns a string representation of the given data list using the given headers.
-    """
-
     ANSI_ESCAPE_REGEX = re.compile("\x1B\\[[0-9]+m")
 
     def escaped_text_length(text):
@@ -131,9 +130,6 @@ def tabulate(headers, data):
     out += separator_row(last=True)
 
     return out
-
-COLOR_RESET = "\33[0m"
-COLOR_RED = "\33[31m"
 
 def highlight(text, spans, color=COLOR_RED):
     """
@@ -293,7 +289,7 @@ def command_show(args):
     fields, display_secrets = _command_projection(args)
 
     if args["json"]:
-        print(display_secrets)
+        print(json.dumps(display_secrets))
     else:
         print(tabulate(fields, display_secrets))
 
@@ -310,15 +306,16 @@ def command_grep(args):
             re_matches = list(re.finditer(pattern, v_highlighted, re.IGNORECASE))
             if re_matches:
                 match = True
-                matches = [re_match.span() for re_match in re_matches]
-                v_highlighted = highlight(v_highlighted, matches)
+                if not args["json"]:
+                    matches = [re_match.span() for re_match in re_matches]
+                    v_highlighted = highlight(v_highlighted, matches)
 
             display_secret[k] = v_highlighted
         if match:
             display_secrets.append(display_secret)
 
     if args["json"]:
-        print(display_secrets)
+        print(json.dumps(display_secrets))
     else:
         print(tabulate(fields, display_secrets))
 
