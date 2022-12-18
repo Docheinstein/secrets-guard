@@ -176,11 +176,18 @@ def get_store_key(args, store_name):
     # prompt
     key = get_or_prompt(args, "key", "Store key: ", secure=True)
 
-    # save in keyring
-    keyring_put_key(store_name, key)
-
     return key
 
+def open_store(name, path, key):
+    # open
+    store = Store(path, key)
+    if not store.load():
+        abort("ERROR: failed to load store")
+
+    # save in keyring
+    keyring_put_key(name, key)
+
+    return store
 
 def command_create(args):
     path = get_stores_path(args, require_exist=False)
@@ -255,9 +262,7 @@ def _command_projection(args):
 
     fields = args["fields"]
 
-    store = Store(store_path, key)
-    if not store.load():
-        abort("ERROR: failed to load store")
+    store = open_store(name, store_path, key)
 
     if not fields:
         fields = [f["name"] for f in store.get_fields()]
@@ -326,9 +331,7 @@ def command_clear(args):
     key = get_store_key(args, name)
     store_path = path / f"{name}.sec"
 
-    store = Store(store_path, key)
-    if not store.load():
-        abort("ERROR: failed to load store")
+    store = open_store(name, store_path, key)
 
     store.clear_secrets()
 
@@ -342,9 +345,7 @@ def command_change_key(args):
     new_key = get_or_prompt(args, "new", "New store key: ", secure=True)
     store_path = path / f"{name}.sec"
 
-    store = Store(store_path, key)
-    if not store.load():
-        abort("ERROR: failed to load store")
+    store = open_store(name, store_path, key)
 
     store.key = new_key
 
@@ -366,9 +367,7 @@ def command_add(args):
         except:
             pass
 
-    store = Store(store_path, key)
-    if not store.load():
-        abort("ERROR: failed to load store")
+    store = open_store(name, store_path, key)
 
     if not secret:
         # prompt all
@@ -409,9 +408,7 @@ def command_modify(args):
         except:
             pass
 
-    store = Store(store_path, key)
-    if not store.load():
-        abort("ERROR: failed to load store")
+    store = open_store(name, store_path, key)
 
     if not secret_mod:
         secret = store.get_secret_by_id(secret_id)
@@ -452,9 +449,7 @@ def command_remove(args):
 
     secrets_to_remove = args["secrets"]
 
-    store = Store(store_path, key)
-    if not store.load():
-        abort("ERROR: failed to load store")
+    store = open_store(name, store_path, key)
 
     if not secrets_to_remove:
         x = prompt("ID of the secret(s) to remove: ")

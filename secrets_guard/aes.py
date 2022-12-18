@@ -72,6 +72,6 @@ def aes_decrypt_file(path: Path, key: str | bytes):
     except OSError as e:
         print(f"ERROR: AES decryption error {e}", file=sys.stderr)
         return False
-    except UnicodeError:
+    except:
         print(f"ERROR: AES decryption error (invalid key?)", file=sys.stderr)
         return False
