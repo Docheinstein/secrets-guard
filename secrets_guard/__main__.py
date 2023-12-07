@@ -342,7 +342,7 @@ def command_change_key(args):
     path = get_stores_path(args, require_exist=False)
     name = get_or_prompt(args, "name", "Store name: ")
     key = get_or_prompt(args, "key", "Old store key: ", secure=True)
-    new_key = get_or_prompt(args, "new", "New store key: ", secure=True)
+    new_key = get_or_prompt(args, "new", "New store key: ", secure=True, double_check_message="New store key again: ")
     store_path = path / f"{name}.sec"
 
     store = open_store(name, store_path, key)
@@ -430,9 +430,11 @@ def command_modify(args):
                 pass
 
         chosen_field = fields[choice]
+        hidden = chosen_field["hidden"]
         secret_mod[chosen_field["name"]] = prompt(
-            f"New value of \"{chosen_field['name']}\": ",
-            secure=chosen_field["hidden"],
+            message=f"New value of \"{chosen_field['name']}\": ",
+            secure=hidden,
+            double_check_message=f"New value of \"{chosen_field['name']}\" again: " if hidden else None
         )
 
     store.modify_secret(secret_id, secret_mod)
