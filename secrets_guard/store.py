@@ -103,7 +103,7 @@ class Store:
                 secret[f["name"]] = secret_mod[f["name"]]
 
         if update_date_field:
-            secret[update_date_field] = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+            secret[update_date_field] = datetime.now().strftime("%Y/%m/%d %H:%M:%S")
         return secret
 
     def add_secret(self, secret):
