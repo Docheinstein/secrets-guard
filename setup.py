@@ -8,7 +8,7 @@ def read(file_name):
 
 setup(
     name="secrets-guard",
-    version="0.18",
+    version="0.19",
 
     # Requires python3.5
     python_requires=">=3",
